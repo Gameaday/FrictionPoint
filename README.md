@@ -130,27 +130,26 @@ history. No agent-to-agent peering, ever. See [`docs/FLEET.md`](docs/FLEET.md).
 
 ## Documentation
 
-- [`docs/PLAN.md`](docs/PLAN.md) — **authoritative build plan**: crate map, dependency budget,
-  memory/CPU budgets, coverage maps, resilience, 14-week schedule, definition of done.
-- [`docs/AUDIT.md`](docs/AUDIT.md) — the self-audit: overclaims challenged, scope cut, technical
-  corrections, threat model, what we will never be able to do.
-- [`docs/VISION.md`](docs/VISION.md) — why this exists, who it's for, what it refuses to be.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — data model, crates, detectors, perf budget,
-  Phase 1 spec, testing strategy.
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — host vs container vs Kubernetes, capability matrix,
-  fleet topology, privileges, upgrade and identity rules.
-- [`docs/FLEET.md`](docs/FLEET.md) — central exposure: causal model, hub tier, pane, privacy
-  tiers, federation, and the five fields the agent must ship now to make it additive later.
-- [`docs/LESSONS-STALLWATCH.md`](docs/LESSONS-STALLWATCH.md) — what the closest prior art got right,
-  the failures its own 30-day post-mortem exposed, and the requirements we changed because of them.
-- [`docs/PRIOR-ART.md`](docs/PRIOR-ART.md) — the honest competitive landscape and why this is
-  still worth building.
-- [`docs/LAUNCH.md`](docs/LAUNCH.md) — GitHub About text, topics, first issues, launch post.
-- [`docs/adr/`](docs/adr/) — decision records for the choices that are expensive to reverse.
+**Start here.** The docs have different authority; see [`docs/README.md`](docs/README.md) for precedence.
+An agent is given ~300 lines, not the whole repository.
 
----
+| Read | Why |
+| --- | --- |
+| [`AGENTS.md`](AGENTS.md) | Rules of engagement for coding agents: one task, test first, no new deps, no `unsafe`, no async, stop-and-ask list |
+| [`docs/SCHEMA.md`](docs/SCHEMA.md) | **The contract.** The `Finding` document, deterministic ids, time rules, evidence, and the invariants that may not break |
+| [`docs/TASKS.md`](docs/TASKS.md) | Ordered, independently mergeable task cards with acceptance tests; the first four are fully specified |
+| [`docs/PROJECTS.md`](docs/PROJECTS.md) | Three projects, one contract: Linux (this repo), Windows, Android; what each must be useful for before it starts |
+| [`docs/PLAN.md`](docs/PLAN.md) | Authoritative scope, crate map, dependency budget, memory/CPU budgets, coverage maps, schedule, go/no-go |
 
-## License
+Reference (consult, do not load into an agent):
 
-Intended to be dual-licensed under MIT or Apache-2.0, at your option.
-The license files land with the first code commit.
+- [`docs/README.md`](docs/README.md) — doc map, precedence, reading sets
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — probes, detectors, attribution math, armed capture
+- [`docs/AUDIT.md`](docs/AUDIT.md) — challenged assumptions, scope cuts, threat model, what we cannot do
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — host vs container vs Kubernetes, capability matrix, privileges
+- [`docs/FLEET.md`](docs/FLEET.md) — hub, causal model, roles/edges, privacy, federation
+- [`docs/LESSONS-STALLWATCH.md`](docs/LESSONS-STALLWATCH.md) — the closest prior art's post-mortem, turned into requirements
+- [`docs/VISION.md`](docs/VISION.md) — why this exists, who it is for, what it refuses to be
+- [`docs/PRIOR-ART.md`](docs/PRIOR-ART.md) — competitive landscape and the honest gaps
+- [`docs/LAUNCH.md`](docs/LAUNCH.md) — GitHub About text, topics, first issues, launch copy
+- [`docs/adr/`](docs/adr/) — decisions that are expensive to reverse
