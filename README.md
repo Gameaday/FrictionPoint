@@ -116,4 +116,5 @@ and reported honestly rather than faked.
 
 ## License
 
-Dual-licensed under MIT or Apache-2.0, at your option.
+Intended to be dual-licensed under MIT or Apache-2.0, at your option.
+The license files land with the first code commit.
