@@ -119,6 +119,12 @@ health when it is blind. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 Agents are **push-only and never listen**; findings are the wire format (MQTT / OTLP / webhook),
 so fleet mode arrives later without changing the core.
 
+**Fleet mode is a separate tier, not a bigger agent.** With 15 hosts the interesting question
+stops being "why is this box slow" and becomes "which box made this one slow." Findings carry
+role/impact hints, resource keys, and clock provenance from v0.1, so an optional hub can later
+build **origin -> bottleneck -> victim** chains without changing the agent or re-collecting
+history. No agent-to-agent peering, ever. See [`docs/FLEET.md`](docs/FLEET.md).
+
 ---
 
 ## Documentation
@@ -128,6 +134,8 @@ so fleet mode arrives later without changing the core.
   Phase 1 spec, testing strategy.
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — host vs container vs Kubernetes, capability matrix,
   fleet topology, privileges, upgrade and identity rules.
+- [`docs/FLEET.md`](docs/FLEET.md) — central exposure: causal model, hub tier, pane, privacy
+  tiers, federation, and the five fields the agent must ship now to make it additive later.
 - [`docs/PRIOR-ART.md`](docs/PRIOR-ART.md) — the honest competitive landscape and why this is
   still worth building.
 - [`docs/LAUNCH.md`](docs/LAUNCH.md) — GitHub About text, topics, first issues, launch post.

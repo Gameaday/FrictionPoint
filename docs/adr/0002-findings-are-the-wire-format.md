@@ -27,6 +27,10 @@ The founding incident (a log flood on one host taking down ingress on another) i
    declarative `topology.toml`, so a future collector can join them without a schema change.
 5. **Sinks are downstream of findings.** Metrics are exported for people who want them, but the
    product's contract is the finding document.
+6. **Tier carve-out.** The no-database rule applies to the *monitored-host agent*. A future hub
+   tier (`frictionpoint hub`, see `docs/FLEET.md`) may keep a bounded event store and index,
+   because it is not the system under diagnosis. The `Finding` document remains the only contract
+   between tiers.
 
 ## Consequences
 

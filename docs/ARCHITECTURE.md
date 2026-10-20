@@ -155,12 +155,24 @@ pub struct Finding {
     pub culprit: Option<Culprit>,
     pub evidence: Vec<EvidenceItem>,
     pub advice: &'static [AdviceId],  // stable ids -> recipe lookup
+
+    // --- forward-compatible fleet fields (see docs/FLEET.md) ---
+    pub role_hint: RoleHint,          // Origin | Victim | Bottleneck | Unknown
+    pub impact: Impact,               // SelfStalled | RemoteWait | Degraded | Observed
+    pub resource_keys: Vec<String>,   // "unit:traefik.service@pi-central"
+    pub clock: ClockProvenance,       // mono window + wall anchor + skew bound
 }
 ```
 
 A finding with no credible culprit is still valuable: "the device is stalling with almost no
 queue depth" is a hardware hypothesis, not a failure to diagnose. Never invent a culprit to
 fill the field.
+
+**Why those last four fields exist now.** They cost nothing (no dependency, no I/O, no network)
+and they are expensive to add later because they require re-collecting history. `role_hint` and
+`impact` are what let a future hub distinguish an origin from a victim; `resource_keys` is the
+join key for cross-host causality; `clock` is what stops the hub from inventing causal ordering
+out of NTP skew. The hub, pane, and federation are specified separately in `docs/FLEET.md`.
 
 ---
 
@@ -559,10 +571,13 @@ events. Unrooted = advisory only. Rooted/Perfetto = deeper tier.
 
 Separate binary, dry-run by default, signed recipe index, explicit consent for every change.
 
-### M7 - Fleet + MCP
+### M7 - Fleet phases, then MCP
 
-Multi-host aggregation, cascade across hosts, and an MCP server so agents can query findings
-instead of scraping dashboards.
+Fleet is sequenced in `docs/FLEET.md` §10 and gated on real multi-host users: v0.2 one-way
+MQTT/webhook export, v0.3 `hub` + read-only `/v1` API + `fleet` TUI, v0.4 causal reasoner
+(roles, edges, blast radius), v0.5 web pane, v0.6 hub-to-hub federation. An MCP server exposing
+findings and episodes comes after the API stabilizes, so agents query structure rather than
+scraping output.
 
 ---
 

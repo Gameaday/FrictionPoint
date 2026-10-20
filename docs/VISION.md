@@ -153,7 +153,7 @@ Scope creep kills this category. The split below is the guardrail.
 | **Recipes** | Declarative TOML advice keyed to finding types | None (pure data) | Community-contributed, bundled or fetched |
 | **Trace** | Optional deep per-request tracing (eBPF/ETW) | Root/admin | Feature flag on the same binary |
 | **Fix** | Applies remedies: config edits, driver/firmware links | Elevated, explicit | Separate binary, dry-run first |
-| **Fleet** | Multi-host aggregation and cascade detection | Network | Separate service / DaemonSet |
+| **Fleet** | Optional hub + pane; causal chains across hosts | Network | Separate tier (hub subcommand + optional UI) |
 
 Rules that keep the core slim:
 
