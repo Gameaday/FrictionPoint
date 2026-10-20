@@ -319,6 +319,10 @@ Stretch: `journal_commit`, `memory_reclaim`, `thermal_throttle`.
 
 ## 11. Schedule and effort model (part-time)
 
+**Milestones are area gates, not calendar buckets.** The vertical delivery unit and its exit
+checklist are in [`AREAS.md`](AREAS.md); the table below only maps them onto elapsed time.
+
+
 **Honest revision.** The earlier "14 weeks" figure assumed ~100 LOC/hour sustained, which is not how
 careful systems code gets written. At a realistic 30-40 LOC/hour including design, tests, debugging and
 docs, the numbers below hold. The sequence is unchanged; the calendar is ~2x longer.

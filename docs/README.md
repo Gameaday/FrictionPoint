@@ -3,7 +3,7 @@
 These documents are inputs, not an archive. They have different **authority** and different
 **audiences**, and loading the wrong set into an agent's context makes it worse, not better.
 
-Total repository documentation: ~4,100 lines.
+Total repository documentation: ~4,350 lines.
 **What an agent is given: ~300 lines.**
 
 That ratio is deliberate.
@@ -47,6 +47,7 @@ That is enough to understand, scope, and run the project.
 | Document | Answers | Lines |
 | --- | --- | --- |
 | [`METRICS.md`](METRICS.md) | per-platform metric catalogue: mechanisms, sources, exposure, metric ids | 368 |
+| [`AREAS.md`](AREAS.md) | vertical delivery: one user question per area, exit checklist, coverage matrix | 207 |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | how each mechanism works: probes, detectors, attribution math, armed capture | 636 |
 | [`PLAN.md`](PLAN.md) | the authoritative scope, budgets, coverage maps, schedule, go/no-go | 464 |
 | [`DEPLOYMENT.md`](DEPLOYMENT.md) | host vs container vs Kubernetes, capability matrix, privileges | 416 |
