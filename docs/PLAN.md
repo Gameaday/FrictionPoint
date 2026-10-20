@@ -317,7 +317,22 @@ Stretch: `journal_commit`, `memory_reclaim`, `thermal_throttle`.
 
 ---
 
-## 11. Schedule (part-time, ~10-12 h/week)
+## 11. Schedule and effort model (part-time)
+
+**Honest revision.** The earlier "14 weeks" figure assumed ~100 LOC/hour sustained, which is not how
+careful systems code gets written. At a realistic 30-40 LOC/hour including design, tests, debugging and
+docs, the numbers below hold. The sequence is unchanged; the calendar is ~2x longer.
+
+| Slice | Production LOC | + tests | Hours @ ~35 LOC/h | Elapsed @ 11 h/week |
+| --- | --- | --- | --- | --- |
+| v0.1 skeleton (PSI, diskstats, 1 detector, report, doctor) | ~1.9k | ~0.9k | ~80 | 7-8 weeks |
+| v0.2 alpha (6 detectors, fixtures, replay, coverage) | ~2.6k | ~1.4k | ~115 | 10-11 weeks |
+| v0.3 beta (TUI, explain, episodes, fuzz, packaging) | ~1.8k | ~1.0k | ~80 | 7-8 weeks |
+| v1.0 (field soak, docs, release) | ~0.7k | ~0.4k | ~50 | 4-5 weeks (mostly elapsed) |
+| **Total to v1.0 Linux** | **~7k** | **~3.7k** | **~325** | **~6 months** |
+
+At 16 h/week this compresses to ~4 months. At 5 h/week it is a year. Both are fine; pretending
+otherwise is not.
 
 | Weeks | Milestone | Deliverables | Gate |
 | --- | --- | --- | --- |
@@ -403,3 +418,47 @@ the wire format), 0003 (sync loop, no async), 0004 (agent does not link networki
 
 None of these changes the crate map, the schema, or the v1.0 promise.
 
+
+---
+
+## 16. Go / no-go checklist
+
+Answer these before writing code. Four or more "yes" means go. Three or fewer means build the
+three-week prototype in §17 and decide again.
+
+| # | Question | Why it decides the project |
+| --- | --- | --- |
+| 1 | Do you have hardware to reproduce **at least three** of the six faults? (Pi, a spare or aged SD card, and a loop-mounted ext4 image for destructive tests) | Fixtures are the testing foundation. **Never inject ext4 errors on a working rootfs** — use a loop device or a sacrificial card. Without real fixtures you are back to self-consistency testing. |
+| 2 | Can you commit **8-10 hours/week for ~6 months**? | Below that, scope must shrink to §17. |
+| 3 | Will you ship **Linux-only v1.0** and refuse Windows, Android, and the fleet hub until then? | Every previous project of this shape died of platform sprawl. |
+| 4 | Will you write the unglamorous parts first — parsers, fuzzing, fixtures, `doctor` — before the TUI? | The TUI is the reward; the parsers are the product. |
+| 5 | Do you accept **advise-only** and explicit "I can't see" outcomes? | The trust model depends on never pretending. |
+
+---
+
+## 17. Smallest shippable slice
+
+If six months is too much, cut to this and still have something real:
+
+- `io.full_stall`, `io.small_write_storm`, `mem.swap_on_sd` (3 detectors)
+- `doctor`, `report`, `explain`, `selftest`
+- `record`/`replay` with **two** real captures (`clean_baseline`, `sd_fsync_storm`)
+- No TUI, no daemon, no alerts, no hub
+
+That is ~4-6 weeks, and it already answers the two questions a Pi owner actually has: *"is my box
+stalling?"* and *"is it the card or an application?"* Ship it as `v0.1.0-alpha.1` and let users vote
+for the next detector with their complaints.
+
+---
+
+## 18. The real risk, stated plainly
+
+At the time of writing this plan is ~2,100 lines of design and **zero lines of code**. That ratio is
+the single largest threat to shipping — larger than any technical unknown in this document.
+
+The architecture questions that mattered are answered: capability negotiation, no async, no unsafe,
+three dependencies, six detectors, unprivileged completeness, real fixtures, honest degradation.
+Further planning now has **negative** value; every additional design document is a day not spent
+finding out whether PSI behaves the way we think on the actual hardware.
+
+The next commit should be `Cargo.toml`.
