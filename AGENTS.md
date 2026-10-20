@@ -8,7 +8,7 @@ The architecture is settled. Your job is to execute a task precisely, not to imp
 1. `docs/SCHEMA.md` — the `Finding` contract. **Wins over everything else.**
 2. `AGENTS.md` (this file) — the rules.
 3. `docs/TASKS.md` — the task list. Take **one** task card.
-4. `docs/PLAN.md` §2 and §5 only — crate map and budgets.
+4. `docs/PLAN.md` §2 and §5 **only if the task card references them** — crate map and budgets.
 
 Do **not** load `VISION.md`, `ARCHITECTURE.md`, `AUDIT.md`, `FLEET.md`, `DEPLOYMENT.md`,
 `PRIOR-ART.md`, `LESSONS-STALLWATCH.md`, or the ADRs into context unless a task card tells you to.
