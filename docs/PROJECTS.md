@@ -68,6 +68,9 @@ A project is not allowed to start until it can answer its own question on day on
 `fp-linux` never travels. If a change is needed in shared code, it lands here first, gets a version,
 and the other projects bump deliberately.
 
+Per-platform metric ownership and the shared mechanism taxonomy live in
+[`METRICS.md`](METRICS.md) §4-6. A metric that is not in that catalogue has no business in a probe.
+
 ## Contract change protocol
 
 1. Open a schema issue **in this repo** describing the additive change and why.

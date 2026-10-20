@@ -144,6 +144,8 @@ An agent is given ~300 lines, not the whole repository.
 Reference (consult, do not load into an agent):
 
 - [`docs/README.md`](docs/README.md) — doc map, precedence, reading sets
+- [`docs/METRICS.md`](docs/METRICS.md) — per-platform metric catalogue: friction mechanisms, sources,
+  how underserved each is, and the stable metric ids
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — probes, detectors, attribution math, armed capture
 - [`docs/AUDIT.md`](docs/AUDIT.md) — challenged assumptions, scope cuts, threat model, what we cannot do
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — host vs container vs Kubernetes, capability matrix, privileges
