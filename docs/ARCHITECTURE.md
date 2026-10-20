@@ -39,7 +39,7 @@ Everything below is read-only. Cost is per sample on a Pi-class device.
 
 | Source | Path | Gives us | Privilege | Cost |
 | --- | --- | --- | --- | --- |
-| **PSI (system)** | `/proc/pressure/{cpu,io,memory}` | `some`/`full` stall share + cumulative µs | none | one small read |
+| **PSI (system)** | `/proc/pressure/{cpu,io,memory}` (+ `irq` where the kernel provides it) | `some`/`full` stall share + cumulative µs; `irq` catches interrupt storms that PSI cpu/io hide | none | one small read each (probe `irq`) |
 | **PSI (cgroup)** | `/sys/fs/cgroup/<path>/*.pressure` | per-unit / per-container stalls | none (read) | O(units) reads |
 | **cgroup I/O** | `/sys/fs/cgroup/<path>/io.stat` | per-unit bytes **and request counts** per device | none (read) | O(units) |
 | **Per-process I/O** | `/proc/<pid>/io` | `rchar,wchar,syscr,syscw,read_bytes,write_bytes` | own processes; root for all | O(procs) |
@@ -93,6 +93,10 @@ Everything below is read-only. Cost is per sample on a Pi-class device.
 - **eBPF needs BTF.** Many SBC kernels lack `CONFIG_DEBUG_INFO_BTF`; aya's CO-RE load will
   fail. Detect, fall back, and say so.
 - **Clock discipline matters.** Use a monotonic clock for deltas; wall clock only for display.
+- **A sample interval is never a duration.** `frozen_ms` derives from cumulative PSI totals over the
+  report window, and is a **lower bound** whenever coverage < 100%. The prior art shipped a 400 ms
+  capture window and reported it as freeze length for ~520,000 incidents; only 3 appeared to exceed
+  1 s. This is a correctness rule, not a formatting detail.
 
 ---
 
@@ -307,6 +311,7 @@ output. This is also the unit of work for agent-driven development (one detector
 | `io.writeback_throttle` | Dirty-page throttling | `nr_dirty` approaching `dirty_ratio`, writeback active, tasks in D-state on `balance_dirty_pages` | vmstat + wchan census | lower `dirty_ratio`, smooth bursty writers |
 | `io.journal_serialization` | ext4 journal bottleneck | jbd2 commit rate at ceiling, jbd2 thread in D-state, many small metadata ops | `/proc/fs/jbd2/*/info` | `commit=`, `noatime`, fewer files/renames |
 | `io.device_stall` | Device is slow (hardware) | High p95/p99 latency at **low** queue depth, uncorrelated with any single writer | diskstats + absence of blame | replace card, move to USB/NVMe, check power |
+| `irq.storm` (v1.x, optional) | Interrupt/softirq storm | `/proc/pressure/irq` full/some elevated while cpu pressure is flat | none (system-wide) | pin IRQs, fix driver/device, move USB load |
 | `io.remount_readonly` | Rootfs went read-only | ext4 error -> remount-ro event | kernel log + mount flags | card failure; back up now, replace |
 | `mem.reclaim_pressure` | Memory pressure / reclaim | PSI `memory full`, direct reclaim, major faults, swap-in | vmstat, per-pid RSS growth | right-size services, zram tuning, add RAM |
 | `mem.swap_on_sd` | Swap is on the SD card | `/proc/swaps` on `mmcblk*` | `/proc/swaps` | disable/relocate swap, prefer zram |

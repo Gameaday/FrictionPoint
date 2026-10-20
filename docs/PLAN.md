@@ -21,6 +21,11 @@ Android, the fleet hub, tracing — is explicitly *later* and must not shape v1.
 8. **Small surface beats clever surface.** Every dependency is a maintenance contract.
 9. **Defer, don't preclude.** Schema seams now; services later.
 10. **If it isn't measured, it isn't a claim.**
+11. **Zero privilege to diagnose; privilege only to refine.** PSI and cgroup `io.stat` are
+    world-readable, so a complete unit-level diagnosis must work as an unprivileged user. Root
+    or capabilities may only add process/file refinement.
+12. **Truth over self-consistency.** Tests against hand-made data prove the code agrees with
+    itself. Real captures, a field soak, and a manual audit are the only evidence that counts.
 
 ---
 
@@ -264,6 +269,7 @@ Threat model: `AUDIT.md` §E. These are the controls that must exist in code, no
 | Parser fuzz targets | `fp-linux` | `cargo-fuzz`, 5 min/night, corpus committed |
 | Redaction before sink | agent | test: path appears nowhere in tier-0 output |
 | Rate-limited logging | agent | test: 10k findings emit ≤ 5 log lines/min |
+| Unprivileged completeness | agent | CI runs the detector suite as non-root and asserts a culprit is named |
 | Dependency policy | CI | `cargo-deny` (advisories, licenses, bans) + `machete` |
 | Signed, checksummed artifacts | release | `cosign`/minisign + SHA256SUMS |
 | SBOM | release | `cargo-sbom` or `syft` |
@@ -321,7 +327,7 @@ Stretch: `journal_commit`, `memory_reclaim`, `thermal_throttle`.
 | 7-8 | **Agent + packaging** | daemon loop, staggered scheduling, JSONL sink, redaction tiers, systemd unit, `install.sh`, aarch64/armv7/armv6 builds | `systemd-analyze security` passes; binary < 5 MB; installer is idempotent |
 | 9-10 | **Beta (v0.3)** | `watch` TUI, webhook sink, `explain`, `unknown_friction` residual, fuzz corpus, perf gate, docs | Fuzz clean 24 h; zero findings on baseline; CI <= 5 min |
 | 11-12 | **Field validation** | Run on 3 real hosts (Pi 4, Zero 2 W, x86 server) for 2 weeks; tune thresholds; publish 3 case studies | Each case study has a reproducible fixture |
-| 13-14 | **v1.0 Linux** | Launch kit, demo GIF, README polish, signed release, Home Assistant MQTT discovery doc | Five acceptance criteria below |
+| 13-14 | **v1.0 Linux** | Launch kit, demo GIF, README polish, signed release, Home Assistant MQTT discovery doc | Seven acceptance criteria below |
 
 ### v1.0 acceptance criteria
 
@@ -332,6 +338,10 @@ Stretch: `journal_commit`, `memory_reclaim`, `thermal_throttle`.
 3. Idle RSS <= 12 MB and CPU < 1% on a Pi Zero 2 W, verified by `doctor` on hardware.
 4. Zero `unsafe` outside `fp-trace`; `cargo-deny` clean; no panics in a 7-day soak.
 5. A new user can install, run `baseline`, and understand the output without reading the docs.
+6. **Truth audit:** 7-day soak on three hosts; 50 emitted findings manually verified; miss rate
+   recorded. Corpus fixtures must be real captures, not hand-authored.
+7. **Unprivileged completeness:** the detector suite runs as a non-root user and still names a
+   culprit at unit granularity. If it cannot, the release is blocked.
 
 If criterion 2 fails, **cut a detector rather than weaken the baseline gate.**
 
@@ -346,7 +356,9 @@ If criterion 2 fails, **cut a detector rather than weaken the baseline gate.**
 4. **Web pane** — separate crate, public API only.
 5. **`trace` feature (fanotify, then eBPF)** — promotes findings from `correlated` to `traced`.
 6. **Windows (`fp-windows`, separate artifact)** — ETW disk, DPC/ISR, USB resets, sleep/wake.
-7. **Android advisor** — exploratory; may be a separate repo or never ship.
+7. **`act` mode** — bounded, reversible, receipted, verified; cgroup knobs only (`io.max`,
+   `memory.high`), never kill/restart/sysctl/package installs.
+8. **Android advisor** — exploratory; may be a separate repo or never ship.
 
 Nothing on this list may add a dependency or a code path to the v1.0 agent binary.
 

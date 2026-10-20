@@ -141,6 +141,8 @@ history. No agent-to-agent peering, ever. See [`docs/FLEET.md`](docs/FLEET.md).
   fleet topology, privileges, upgrade and identity rules.
 - [`docs/FLEET.md`](docs/FLEET.md) — central exposure: causal model, hub tier, pane, privacy
   tiers, federation, and the five fields the agent must ship now to make it additive later.
+- [`docs/LESSONS-STALLWATCH.md`](docs/LESSONS-STALLWATCH.md) — what the closest prior art got right,
+  the failures its own 30-day post-mortem exposed, and the requirements we changed because of them.
 - [`docs/PRIOR-ART.md`](docs/PRIOR-ART.md) — the honest competitive landscape and why this is
   still worth building.
 - [`docs/LAUNCH.md`](docs/LAUNCH.md) — GitHub About text, topics, first issues, launch post.

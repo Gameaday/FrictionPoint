@@ -155,6 +155,23 @@ Scope creep kills this category. The split below is the guardrail.
 | **Fix** | Applies remedies: config edits, driver/firmware links | Elevated, explicit | Separate binary, dry-run first |
 | **Fleet** | Optional hub + pane; causal chains across hosts | Network | Separate tier (hub subcommand + optional UI) |
 
+### The permission ladder (adopted from prior art)
+
+Observing, explaining, advising and acting are four different permissions, not one feature with
+toggles. Every surface must be clear about which one it is in.
+
+| Mode | What it does | Default |
+| --- | --- | --- |
+| `watch` | Observe and report. Strictly read-only. | **yes** |
+| `explain` | Adds causation, evidence, and confidence. Still read-only. | on request |
+| `advise` | Prints the exact command that would mitigate, and does not run it. Read-only. | opt-in |
+| `act` | Applies a bounded, reversible change and records a receipt. | explicit, per-invocation, post-1.0 |
+
+If `act` ever ships, its properties are non-negotiable: never the default; bounded to a small set of
+cgroup knobs (`io.max`, `memory.high`); reversible; receipted with the prior value and the exact revert
+command; and **verified** by measuring whether the stall actually stopped. It never kills, restarts,
+changes sysctl, or installs packages. An action you cannot undo is an action you should not have taken.
+
 Rules that keep the core slim:
 
 - The core **never downloads or installs anything**. It emits a recommendation with a stable

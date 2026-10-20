@@ -46,6 +46,13 @@ is bounded by the sampling window. Those are now explicit requirements in
 
 **A 2-star archive is not a competitor. It is a proof of concept that nobody productized.**
 
+**Its post-mortem is the most useful artifact in the repo.** After 30 days and ~520,000 recorded
+incidents the author found three failures a 132-test suite had missed: the cause branch never
+executed (it depended on `/proc/<pid>/io`, unreadable for root daemons), the reported "freeze
+duration" was actually the 400 ms capture window, and the notification policy would have sent
+2,489 messages a month until it was rebuilt around episodes (38/month). Extraction and the
+resulting requirements: [`LESSONS-STALLWATCH.md`](LESSONS-STALLWATCH.md).
+
 ---
 
 ## 2. Landscape by category

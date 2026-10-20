@@ -141,6 +141,12 @@ The before/after in one screen is the entire pitch. It also happens to be the
 | 21 | Staggered PID scheduler (1/5 of PIDs per tick, round-robin) | M | Keeps idle CPU under budget |
 | 22 | Coverage accounting: attributed/observed requests + eviction counters | M | A diagnosis needs a denominator |
 | 23 | `delayacct_blkio_ticks` blocked-time cross-check (armed, top 16 suspects) | M | Independent confirmation of request-share blame |
+| 24 | Non-root attribution test: assert a culprit is named with no privileges | S | The prior art's cause branch never fired in 29 days |
+| 25 | `doctor`: state the cost of each missing capability; log the same at startup | S | Silent blindness is the worst failure mode |
+| 26 | Severity from cumulative counters + property test (tick rate must not change it) | S | A sample window is not a duration |
+| 27 | Episode grouping + cooldown + per-day alert budget, before any alert sink | M | 2,489 notifications/month is how tools get muted |
+| 28 | `config --explain`: resolved value and which file won | S | Layered config must be debuggable |
+| 29 | Spike: PSI-trigger wake with polling fallback; report the mode in `doctor` | M | Zero cost while healthy (v0.3) |
 
 ---
 
