@@ -490,6 +490,9 @@ frictionpoint doctor                             # what this host can and cannot
 frictionpoint record --for 120s --label <name>   # capture a scenario fixture
 frictionpoint replay <file.fpz> [--json]         # deterministic detector run over a fixture
 frictionpoint export --format prometheus|otlp|jsonl
+frictionpoint selftest                           # liveness probe (unlike doctor, a degraded agent is alive)
+frictionpoint daemon                             # resident mode (foreground until M2)
+frictionpoint collect                            # fleet aggregation; same binary, no DB (later)
 ```
 
 Exit codes (scriptable, alert-friendly):
@@ -592,8 +595,11 @@ pinned, `cargo-deny` for licenses/advisories, `cargo-nextest` in CI, `cargo fmt 
 
 ## 16. Open decisions (need your call)
 
-1. **Distribution:** static binary + install script first, or `.deb` + Home Assistant add-on?
-   Suggest: static binary, then a Home Assistant add-on (huge reach with homelabbers).
+1. **Distribution:** *decided* - one static binary is canonical; systemd on the host is the
+   full-fidelity mode; containers are a self-declaring degraded mode. See `docs/DEPLOYMENT.md`
+   and `docs/adr/0001-single-binary-capability-negotiation.md`. Note: a Home Assistant **add-on**
+   cannot see the host cgroup tree reliably, so the HA path is a host install plus MQTT
+   integration, not an add-on wrapper.
 2. **Daemon or not:** ship a resident daemon in v0.1, or make `watch`/`report` foreground tools
    until the model stabilizes? Suggest foreground first; daemon once detectors are trusted.
 3. **eBPF in v0.1:** keep it strictly opt-in behind a feature flag, or omit until M2?

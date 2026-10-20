@@ -52,6 +52,15 @@ homelab  etw  android  cli  low-overhead
 - Releases: static `aarch64-unknown-linux-musl`, `x86_64-unknown-linux-musl`, checksums,
   and a signed `install.sh`. No release until Phase 1 acceptance criteria pass.
 
+Distribution ladder (in order, each step only after the previous is boring):
+
+1. `.tar.gz` static binary + `install.sh` (checksum, arch detect, systemd unit).
+2. `apt` repository for Debian/Raspberry Pi OS.
+3. OCI image + Compose recipe + DaemonSet manifest (host-visibility, `doctor`-verified).
+4. Home Assistant via **MQTT discovery from a host install** - *not* as an add-on. An add-on
+   container cannot see the host cgroup tree dependably, so wrapping it would ship the one
+   failure mode this project exists to eliminate.
+
 ---
 
 ## 3. The 15-second demo (build this before the launch post)
@@ -127,6 +136,8 @@ The before/after in one screen is the entire pitch. It also happens to be the
 | 16 | Narrative templates + `insta` snapshots | S | Wording is product |
 | 17 | Detection-task harness (`xtask task new/score`) | M | For the agentic experiment |
 | 18 | Docs: "what these numbers mean" | S | Explains PSI to normal humans |
+| 19 | systemd unit + sysusers/tmpfiles + hardened `install.sh` | S | Least-privilege ladder in practice |
+| 20 | Compose + DaemonSet recipes with a `doctor`-asserted visibility test | M | Proves the capability matrix instead of claiming it |
 
 ---
 
@@ -163,3 +174,4 @@ findings and the budgets are met.
 - Do not claim causality without the confidence tier; say "correlated" where it is correlated.
 - Do not promise automated fixes. The value at launch is the diagnosis.
 - Do not call it AI-powered. It is deterministic, and that is a feature.
+- Do not imply a container gets full fidelity. Say which mode has which visibility.

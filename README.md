@@ -101,6 +101,24 @@ We deliberately ship **one platform well** before adding a second. Cross-platfor
 the graveyard this kind of project usually dies in — so capabilities are negotiated at runtime
 and reported honestly rather than faked.
 
+### Deployment
+
+One static binary, three supported shapes:
+
+| Shape | Fidelity | Use |
+| --- | --- | --- |
+| **Host + systemd** | Full (traced-capable) | **Recommended.** Raspberry Pi, single boxes, homelab nodes |
+| **Container (host-visibility recipe)** | Partial (correlated) | Servers, Kubernetes DaemonSet |
+| **Container (defaults)** | Severity only — *announced as degraded* | Try-before-install, CI |
+
+Host-first is a **correctness** choice, not a convenience one: a container with a private cgroup
+namespace sees only its own subtree and would report "healthy" while the host is in full I/O
+stall. The tool always states what it can and cannot see, and exits `3` rather than claiming
+health when it is blind. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+Agents are **push-only and never listen**; findings are the wire format (MQTT / OTLP / webhook),
+so fleet mode arrives later without changing the core.
+
 ---
 
 ## Documentation
@@ -108,9 +126,12 @@ and reported honestly rather than faked.
 - [`docs/VISION.md`](docs/VISION.md) — why this exists, who it's for, what it refuses to be.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — data model, crates, detectors, perf budget,
   Phase 1 spec, testing strategy.
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — host vs container vs Kubernetes, capability matrix,
+  fleet topology, privileges, upgrade and identity rules.
 - [`docs/PRIOR-ART.md`](docs/PRIOR-ART.md) — the honest competitive landscape and why this is
   still worth building.
 - [`docs/LAUNCH.md`](docs/LAUNCH.md) — GitHub About text, topics, first issues, launch post.
+- [`docs/adr/`](docs/adr/) — decision records for the choices that are expensive to reverse.
 
 ---
 
