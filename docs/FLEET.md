@@ -276,6 +276,16 @@ When the hub is down or slow:
 The `gap` marker matters more than it looks: a missing finding and a clean host are not the same
 thing, and the hub must never conflate them.
 
+### 5.5 Kubernetes: consume, don't re-collect
+
+Kubernetes already exports PSI at node, pod, and container granularity (per the prior art's research;
+verify the current status against your version). **Do not build a PSI exporter for Kubernetes.**
+
+The hub's value in a cluster is not collection — it is **causality, roles, and narrative** across
+workloads and nodes, plus the storage/hardware signals the platform does not model. Consume the
+platform's metrics and join them with our findings.
+
+
 ---
 
 ## 6. The pane: five questions, not ten charts
