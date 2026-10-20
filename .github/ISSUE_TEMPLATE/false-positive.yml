@@ -1,0 +1,55 @@
+name: False positive
+description: FrictionPoint blamed the wrong thing, or fired on a healthy system
+title: "[false-positive] "
+labels: ["false-positive"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        False positives are treated as the most serious class of bug: one confident wrong
+        culprit costs more trust than ten correct findings earn.
+  - type: textarea
+    id: blamed
+    attributes:
+      label: What did it blame?
+      description: Paste the finding JSON, or the `why` output. Redact paths if needed.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What was actually happening?
+      description: If you later found the real cause, describe it. This becomes a fixture.
+    validations:
+      required: true
+  - type: textarea
+    id: baseline
+    attributes:
+      label: What does `frictionpoint baseline --for 60s` say on an idle system?
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`frictionpoint doctor` output"
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: Host
+      description: Distribution, `uname -r`, architecture, board model
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I can help record a fixture that reproduces this
+          required: false
+        - label: I removed or redacted personal paths and process names
+          required: true

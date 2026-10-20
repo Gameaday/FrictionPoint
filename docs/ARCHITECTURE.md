@@ -297,45 +297,46 @@ Consequences:
 
 ## 7. Detector catalogue
 
-**Six of these ship in v1.0** (`io.full_stall`, `io.small_write_storm`,
-`io.device_stall`, `mem.swap_on_sd`, `hw.thermal_throttle`, `io.remount_readonly`). The rest are
-phase-marked backlog, not commitments.
+**v1.0 ships areas A1 + A2** — the ten rows marked `v1.0` below, including the residual and one
+advisory check. Everything else is phase-marked backlog, not a commitment. Area definitions and exit
+criteria live in [`AREAS.md`](AREAS.md).
 
-Each detector is a small, independently testable unit with a recorded fixture and a golden
-output. This is also the unit of work for agent-driven development (one detector = one PR).
+Each detector is a small, independently testable unit with a recorded fixture, a golden output, and a
+negative test. This is also the unit of work for agent-driven development (one detector = one PR).
 
-| ID | Detector | Signature (what makes it fire) | Culprit source | Remedy direction |
+| ID | Detector | Signature (what makes it fire) | Culprit source | Phase |
 | --- | --- | --- | --- | --- |
-| `io.full_stall` | I/O full stall | PSI `io full` delta over window exceeds floor (e.g. 200ms) and share > 2% | none (severity carrier) | context for other findings |
-| `io.small_write_storm` | Small-write / fsync storm | High `wios` share + mean request < 16 KiB + elevated service time | cgroup `io.stat`, `/proc/<pid>/io` | buffer/batch writes, raise log level, move data dir, `commit=` |
-| `io.writeback_throttle` | Dirty-page throttling | `nr_dirty` approaching `dirty_ratio`, writeback active, tasks in D-state on `balance_dirty_pages` | vmstat + wchan census | lower `dirty_ratio`, smooth bursty writers |
-| `io.journal_serialization` | ext4 journal bottleneck | jbd2 commit rate at ceiling, jbd2 thread in D-state, many small metadata ops | `/proc/fs/jbd2/*/info` | `commit=`, `noatime`, fewer files/renames |
-| `io.device_stall` | Device is slow (hardware) | High p95/p99 latency at **low** queue depth, uncorrelated with any single writer | diskstats + absence of blame | replace card, move to USB/NVMe, check power |
-| `irq.storm` (v1.x, optional) | Interrupt/softirq storm | `/proc/pressure/irq` full/some elevated while cpu pressure is flat | none (system-wide) | pin IRQs, fix driver/device, move USB load |
-| `io.remount_readonly` | Rootfs went read-only | ext4 error -> remount-ro event | kernel log + mount flags | card failure; back up now, replace |
-| `mem.reclaim_pressure` | Memory pressure / reclaim | PSI `memory full`, direct reclaim, major faults, swap-in | vmstat, per-pid RSS growth | right-size services, zram tuning, add RAM |
-| `mem.swap_on_sd` | Swap is on the SD card | `/proc/swaps` on `mmcblk*` | `/proc/swaps` | disable/relocate swap, prefer zram |
-| `cpu.runqueue_delay` | CPU starvation | `schedstat` run-queue wait high, PSI `cpu some` | per-pid schedstat | pin/renice, reduce oversubscription |
-| `cpu.ctx_switch_storm` | Wakeup storm | involuntary switches/sec far above baseline | per-pid status | fix polling loops, increase intervals |
-| `hw.thermal_throttle` | Thermal / undervoltage | `get_throttled` bits, temp above trip | vcgencmd + thermal zones | PSU/cable/cooling |
-| `hw.mmc_errors` | Card/controller errors | `mmc` timeouts/resets in kernel log | kernel log counters | card or power; not a software fix |
-| `fs.log_growth` | Runaway log growth | per-file write volume rate (fanotify, armed) | fanotify events | logrotate, rate-limit, remote ship |
-
-### Distinguishing the four I/O stories
-
-This table is the actual product. All four look identical in `htop`, and each has a different
-fix. Getting this wrong is worse than saying nothing.
-
-| Story | Latency | Queue depth | Throughput | Request size | Other signal | Fix |
-| --- | --- | --- | --- | --- | --- | --- |
-| **fsync / small-write storm** | high | moderate | low | tiny (< 16 KiB) | one dominant writer, high `wios` | batch, buffer, tmpfs, log level |
-| **dirty-page throttling** | high | high | high | mixed | `nr_dirty` at limit, writeback saturated | tune `dirty_ratio`, smooth bursts |
-| **journal serialization** | high | low | low | metadata | jbd2 D-state, commit ceiling | `commit=`, `noatime`, fewer renames |
-| **card / controller stall** | high | **low** | low | any | no dominant culprit, `mmc` errors | replace hardware, fix power |
-
-> "Queue depth is low but latency is high" is the fingerprint of a *device* problem.
-> "Queue depth is high because we flooded it" is the fingerprint of a *workload* problem.
-> Most tools cannot tell you which one you have. That distinction is the point.
+| `io.full_stall` | I/O full stall | PSI `io full` delta above floor; the severity carrier | none (system-wide) | **v1.0** |
+| `io.small_write_storm` | Small-write / fsync storm | high request share + mean request < 16 KiB + elevated service time | cgroup `io.stat`, per-pid `io` | **v1.0** |
+| `io.device_stall` | Device is slow (hardware) | high p95/p99 at **low** queue depth, no dominant writer | `diskstats` + absence of blame | **v1.0** |
+| `unknown_friction` | Unattributed stall | severity above floor, no detector attributes it, reason attached | none | **v1.0** |
+| `hw.undervoltage` | Undervoltage / throttle | `get_throttled` bits, now and since boot | `vcgencmd` | **v1.0** |
+| `hw.thermal_throttle` | Thermal throttle | temperature above trip or frequency capped | thermal zones, `vcgencmd` | **v1.0** |
+| `hw.mmc_errors` | Card/controller errors | `mmc` timeouts, CRC errors, resets | kernel log | **v1.0** |
+| `io.remount_readonly` | Rootfs went read-only | ext4/xfs error -> remount-ro | kernel log + mount flags | **v1.0** |
+| `mem.swap_on_sd` | Swap on the SD card | `/proc/swaps` entry on `mmcblk*` | `/proc/swaps` | **v1.0** |
+| `hw.card_wear` | Card wear (advisory) | eMMC `life_time` class or SD manufacture date | sysfs | **v1.0** (advisory) |
+| `io.writeback_throttle` | Dirty-page throttling | `nr_dirty` near `dirty_ratio`, tasks in `balance_dirty_pages` | vmstat + `wchan` | v1.1 |
+| `io.journal_serialization` | ext4 journal bottleneck | commit rate at ceiling, jbd2 in D-state | `/proc/fs/jbd2/*/info` | v1.1 |
+| `fs.mount_misconfig` | Costly mount options | `atime`, `commit=`, sync mounts on flash | `/proc/mounts` | v1.1 |
+| `fs.capacity` | Full filesystem / inodes | usage above threshold, inode exhaustion, ENOSPC errors | `statvfs`, kernel log | v1.1 |
+| `mem.reclaim_pressure` | Memory pressure | PSI `memory full`, direct reclaim, major faults | vmstat, PSI | v1.2 |
+| `mem.cgroup_limit` | Cgroup memory ceiling | `memory.events` high/max above zero | cgroup files | v1.2 |
+| `mem.oom_event` | OOM kill | OOM event with victim | kernel log / cgroup | v1.2 |
+| `cpu.runqueue_delay` | CPU starvation | `schedstat` run-queue wait, PSI `cpu some` | per-task schedstat | v1.3 |
+| `cpu.ctx_switch_storm` | Wakeup storm | involuntary switches/sec far above baseline | `/proc/<pid>/status` | v1.3 |
+| `cpu.cgroup_throttle` | CFS throttling | `nr_throttled` / `throttled_usec` rising | `cpu.stat` | v1.3 |
+| `cpu.steal` | Stolen CPU (VM) | steal share above baseline | `/proc/stat` | v1.3 |
+| `dep.remote_wait` | Waiting on a dependency | D-state tasks in `rpc_wait_*`, `nfs_*`, socket waits | `wchan` census | v1.4 |
+| `io.fuse_stall` | FUSE stall | FUSE `waiting` growing, task D-state | fuse sysfs | v1.4 |
+| `net.queue_drop` | Local queue drops | `softnet_stat` drops, `time_squeeze` | `/proc/net/softnet_stat` | v1.4 |
+| `net.retransmit` | Retransmit rate (advisory) | retransmit share above baseline | `/proc/net/snmp` | v1.4 |
+| `fs.log_growth` | Runaway log growth | per-file write rate (armed) | fanotify | post-1.0 |
+| `irq.storm` | IRQ/softirq storm | `pressure/irq` high while cpu pressure flat | where present | post-1.0 |
+| `usb.reservation_exhausted` | USB bus oversubscribed | derived reservation ratio above budget | sysfs + descriptors | post-1.0 |
+| `usb.autosuspend_reset` | Autosuspend resets | reset following runtime suspend | sysfs + log | post-1.0 |
+| `usb.overcurrent` | Port over-current | over-current event on a port | kernel log | post-1.0 |
+| `usb.reset_storm` | Repeated bus resets | resets/errors per device above baseline | kernel log | post-1.0 |
 
 ---
 
@@ -543,6 +544,7 @@ warnings`, required fixture per detector, required `explain` evidence, and a CI 
 
 ```text
 frictionpoint baseline [--for 60s] [--json]     # the first-run "what's wrong here?" report
+frictionpoint why                                # recent episode in one sentence (alias: report --since 15m --last)
 frictionpoint watch [--tui]                      # live view; findings stream, not charts
 frictionpoint report [--since 1h]                # episode summary from the daemon
 frictionpoint explain <finding-id>               # raw evidence + the arithmetic behind a finding
@@ -550,6 +552,7 @@ frictionpoint doctor                             # what this host can and cannot
 frictionpoint record --for 120s --label <name>   # capture a scenario fixture
 frictionpoint replay <file.fpz> [--json]         # deterministic detector run over a fixture
 frictionpoint export --format prometheus|otlp|jsonl
+frictionpoint config --explain                    # resolved value + which file won
 frictionpoint selftest                           # liveness probe (unlike doctor, a degraded agent is alive)
 frictionpoint daemon                             # resident mode (foreground until M2)
 frictionpoint collect                            # fleet aggregation; same binary, no DB (later)
@@ -575,15 +578,15 @@ tools betray people.
 
 | Milestone | Content | Gate |
 | --- | --- | --- |
-| v0.1 | PSI + `io.full_stall` + `report` + `doctor` | truthful output; exit 3 when blind |
-| v0.2 | 6 detectors, fixtures, record/replay, coverage | >= 5/6 correct; budgets on Pi Zero |
-| v0.3 | TUI, webhook, `explain`, residual, fuzz, perf gate | zero findings on clean baseline |
-| v1.0 | field validation, packaging, docs, launch | five acceptance criteria in PLAN §11 |
-| v0.4-v0.6 | hub, causal reasoner, pane, MQTT | gated on real multi-host demand |
-| post-1.0 | `trace` feature, Windows artifact, Android (exploratory) | separate efforts |
+| v0.1 | A0 partial: PSI, diskstats, `io.full_stall`, `report`, `doctor` | truthful output; exit 3 when blind |
+| v0.2 | **A1 complete**: storage stall engine, 4 detectors, fixtures, replay, coverage | storm names the unit; GC stall names the device; victim not blamed |
+| v0.3 | **A2 complete** + TUI + packaging | hardware separated from workload; baseline silent |
+| v1.0 | field validation, truth audit, docs, launch | seven acceptance criteria in PLAN §11 |
+| v1.1-v1.4 | A3-A6: config, memory, CPU, dependencies | one area per release |
+| post-1.0 | A7 USB, hub, trace, Windows, Android | separate efforts |
 
-Six detectors ship in v1.0; the rest of the catalogue in §7 is marked by phase and is not a v1.0
-commitment.
+**v1.0 ships A1 + A2** (ten rows in §7). Everything else is backlog, and a release is an area, not a
+metric.
 
 ---
 

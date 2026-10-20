@@ -20,14 +20,14 @@ start area N+1 until area N passes its exit checklist.
 
 | Area | Tasks | Gate |
 | --- | --- | --- |
-| **A0** Foundations | T0-T6, T12 | Replay deterministic; `doctor` accurate on 3 hosts; zero-alloc tick; `clean_baseline` runs and emits nothing |
-| **A1** Storage stall | T7-T11, T14, T19 (+T15/T16 in the first release) | Storm names the unit; GC stall names the device with `culprit: null`; victim case not blamed; `why` in one sentence |
-| **A2** Hardware/power | T13 (thermal, `vcgencmd`, `mmc`, kmsg) + T20-T22 | Hardware separated from workload; `remount_ro` advises backup; baseline silent |
-| **A3** Configuration | T13 (swaps, mounts) + T23-T26 | Every finding has a reversible command; nothing applied; baseline silent |
-| **A4** Memory | T27-T29 | Cache churn distinguished from real pressure; cgroup named; baseline silent |
-| **A5** CPU/scheduler | T30-T32 | Throttling reported with `nr_throttled`; cgroup named; baseline silent |
-| **A6** Dependencies/network | T33-T35 | Never blames the local disk for a remote wait; confidence honest |
-| **A7** Peripherals/USB | Epic, post-1.0 | Explains a dropout or states that `usbmon` is required |
+| **A0** Foundations (v1.0) | T0-T6, T12 | Replay deterministic; `doctor` accurate on 3 hosts; zero-alloc tick; `clean_baseline` runs and emits nothing |
+| **A1** Storage stall (v1.0) | T7-T11, T14, T19 (+T15/T16 in the first release) | Storm names the unit; GC stall names the device with `culprit: null`; victim case not blamed; `why` in one sentence |
+| **A2** Hardware/power (v1.0) | T13 (thermal, `vcgencmd`, `mmc`, kmsg, swaps) + T20-T22 | Hardware separated from workload; `remount_ro` advises backup; baseline silent |
+| **A3** Configuration (v1.1) | T13 (mounts) + T23-T26 | Every finding has a reversible command; nothing applied; baseline silent |
+| **A4** Memory (v1.2) | T27-T29 | Cache churn distinguished from real pressure; cgroup named; baseline silent |
+| **A5** CPU/scheduler (v1.3) | T30-T32 | Throttling reported with `nr_throttled`; cgroup named; baseline silent |
+| **A6** Dependencies/network (v1.4) | T33-T35 | Never blames the local disk for a remote wait; confidence honest |
+| **A7** Peripherals/USB (post-1.0) | Epic | Explains a dropout or states that `usbmon` is required |
 
 T20+ are carded when the preceding area is complete (see rule 6). T15 and T16 are release plumbing:
 needed once for the first alpha, then maintained rather than re-earned per area.

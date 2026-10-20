@@ -1,0 +1,43 @@
+{
+  "schema": "0",
+  "id": "7e6dce5610127c31",
+  "kind": "io.small_write_storm",
+  "detector": { "id": "io.small_write_storm", "version": 1 },
+  "host": { "id": "pi-lab-3", "boot_id": "b-1", "label": "pi-lab-3" },
+  "time": {
+    "mono_start_ns": 1000000000,
+    "mono_end_ns": 301000000000,
+    "wall_start": "2026-10-20T03:09:02Z",
+    "wall_end": "2026-10-20T03:14:02Z",
+    "skew_bound_ms": 50
+  },
+  "severity": { "stalled_ms": 12400, "window_ms": 300000, "coverage_pct": 97.5 },
+  "confidence": "correlated",
+  "impact": "self_stalled",
+  "role_hint": "unknown",
+  "culprit": {
+    "type": "unit",
+    "name": "traefik.service",
+    "detail": { "pid": 412, "comm": "traefik", "cgroup": "/system.slice/traefik.service" }
+  },
+  "resource_keys": [
+    "host:pi-lab-3",
+    "unit:traefik.service@pi-lab-3",
+    "device:mmcblk0p2@pi-lab-3"
+  ],
+  "evidence": [
+    {
+      "source": "cgroup.io_stat",
+      "path": "/sys/fs/cgroup/system.slice/traefik.service/io.stat",
+      "value": "179:2 rbytes=1048576 wbytes=2334720000 rios=1200 wios=570000 dbytes=0 dios=0"
+    },
+    {
+      "source": "psi",
+      "path": "/proc/pressure/io",
+      "value": "some avg10=61.20 avg60=44.10 avg300=22.80 total=3811724509"
+    }
+  ],
+  "advice": ["io.small_write.buffer", "io.small_write.move_data_dir"],
+  "visibility": { "mode": "host", "degraded": [] },
+  "extra": {}
+}

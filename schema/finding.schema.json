@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Gameaday/FrictionPoint/schema/finding.schema.json",
+  "title": "FrictionPoint Finding",
+  "description": "Schema version 0. The only output contract of the project. Additive changes only; readers must ignore unknown fields. Invariants not expressible here (id determinism, stalled_ms <= window_ms, traced requires trace) are enforced by tests.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema",
+    "id",
+    "kind",
+    "detector",
+    "host",
+    "time",
+    "severity",
+    "confidence",
+    "impact",
+    "role_hint",
+    "culprit",
+    "resource_keys",
+    "evidence",
+    "advice",
+    "visibility",
+    "extra"
+  ],
+  "properties": {
+    "schema": {
+      "const": "0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$",
+      "description": "FNV-1a 64 of host.id, boot_id, detector.id, detector.version, window_start_ns, culprit_key separated by 0x1F. Deterministic."
+    },
+    "kind": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+      "description": "Stable detector kind, e.g. io.small_write_storm. Renaming is a breaking change."
+    },
+    "detector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "host": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "boot_id", "label"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "boot_id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" }
+      }
+    },
+    "time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mono_start_ns", "mono_end_ns", "wall_start", "wall_end", "skew_bound_ms"],
+      "properties": {
+        "mono_start_ns": { "type": "integer", "minimum": 0 },
+        "mono_end_ns": { "type": "integer", "minimum": 0 },
+        "wall_start": { "type": "string", "format": "date-time" },
+        "wall_end": { "type": "string", "format": "date-time" },
+        "skew_bound_ms": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "severity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stalled_ms", "window_ms", "coverage_pct"],
+      "properties": {
+        "stalled_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Derived from cumulative counters over the window. A lower bound when coverage_pct < 100."
+        },
+        "window_ms": { "type": "integer", "minimum": 1 },
+        "coverage_pct": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "confidence": {
+      "enum": ["observed", "correlated", "traced"]
+    },
+    "impact": {
+      "enum": ["self_stalled", "remote_wait", "degraded", "observed"]
+    },
+    "role_hint": {
+      "enum": ["origin", "victim", "bottleneck", "unknown"]
+    },
+    "culprit": {
+      "description": "null is valid and must be preserved: an unattributed finding is a legitimate diagnosis.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "name"],
+          "properties": {
+            "type": { "enum": ["unit", "process", "device", "mount", "driver"] },
+            "name": { "type": "string", "minLength": 1 },
+            "detail": { "type": "object", "additionalProperties": true }
+          }
+        }
+      ]
+    },
+    "resource_keys": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Never empty. Each item is the exact path read and the values used.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "path", "value"],
+        "properties": {
+          "source": { "type": "string", "minLength": 1 },
+          "path": { "type": "string" },
+          "value": { "type": "string" }
+        }
+      }
+    },
+    "advice": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Stable advice ids, never prose."
+    },
+    "visibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "degraded"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "description": "host | container | replay | unknown"
+        },
+        "degraded": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Missing capabilities that affected this finding, e.g. procfs_other_users."
+        }
+      }
+    },
+    "episode_id": { "type": "string" },
+    "trace": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Present only when confidence is traced. Unreachable in v1.0."
+    },
+    "extra": {
+      "type": "object",
+      "description": "Platform-specific data (win.*, android.*). Consumers ignore what they do not know."
+    }
+  }
+}

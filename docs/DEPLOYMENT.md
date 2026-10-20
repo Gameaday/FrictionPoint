@@ -414,3 +414,43 @@ is exactly the device the budget claims to support.
 | Documentation | Detector purity (pure functions over recorded windows) |
 | Dashboard integrations | `resource_keys` on findings (cascade seam) |
 | | Read-only-by-default privilege model |
+
+---
+
+## 13. Minimum viable host
+
+The agent is small, but it depends on kernel features. `doctor` probes all of these and states the
+cost of each missing one; it never assumes.
+
+| Requirement | Minimum | Recommended | If missing |
+| --- | --- | --- | --- |
+| Kernel | 5.10 | 6.1+ | Older kernels may lack PSI or cgroup v2; exit 3 |
+| PSI | present (may need `psi=1`) | enabled by default | Fall back to proxy signals; severity marked a lower bound |
+| cgroup v2 unified | preferred | unified | Per-unit attribution degraded to system-wide + per-PID where readable |
+| `/proc` | mounted, not `hidepid=2` for the agent user | full | Exit 3 for per-process data |
+| Architecture | aarch64, armv7, armv6, x86_64 | aarch64 (Pi 3+) | Unsupported binary |
+| RAM | 256 MB | 1 GB | Risk of OOM under pressure; `doctor` warns |
+| Free disk | 20 MB (binary only) | 100 MB | Cannot install |
+| Time sync | any | chrony/NTP | Cross-host joins degrade; `skew_bound_ms` becomes conservative |
+
+Raspberry Pi OS Bullseye (5.10) and Bookworm (6.1/6.6) are the reference platforms. Anything older is
+best-effort and must say so.
+
+---
+
+## 14. Removal and data lifecycle
+
+A diagnostic tool must be as easy to remove as it was to install.
+
+```bash
+sudo systemctl disable --now frictionpoint
+sudo rm /etc/systemd/system/frictionpoint.service
+sudo rm -rf /etc/frictionpoint.toml /etc/frictionpoint.d /var/lib/frictionpoint
+sudo userdel frictionpoint
+```
+
+- There is **no database**, so there is nothing to migrate or export before removal.
+- The optional spool is bounded and removed with `/var/lib/frictionpoint`; it is off by default.
+- Findings live in memory and in whatever sinks the user configured; the agent keeps no history.
+- Fixtures shipped in the repository are project artifacts, not user data.
+- A future `frictionpoint uninstall --dry-run` will print these commands rather than run them.

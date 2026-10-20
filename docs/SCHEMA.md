@@ -137,9 +137,26 @@ id = hex16( fnv1a64( host.id || 0x1F || host.boot_id || 0x1F ||
 ## 8. Fixture contract (separate version)
 
 Fixtures record **raw probe output**, never findings, so detectors can be rewritten and re-scored.
-`fixture_schema` is versioned independently of `schema`. A fixture must carry: host metadata,
-kernel, capabilities, raw samples with monotonic timestamps, and an optional ground-truth manifest.
-Replay must be deterministic and must reproduce identical `id` values.
+`fixture_schema` is versioned independently of `schema`.
+
+Format v0 is line-delimited JSON (optionally zstd-compressed as a whole):
+
+```text
+{"fixture_schema":"0","host":{"id":"...","boot_id":"..."},"kernel":"6.6.31",
+ "arch":"aarch64","capabilities":["psi","cgroup_v2"],"started_ns":123456789}
+{"t":123456789,"probe":"psi","path":"/proc/pressure/io","raw":"some avg10=..."}
+{"t":123556789,"probe":"diskstats","path":"/proc/diskstats","raw":"179 0 mmcblk0 ..."}
+{"end":true,"samples":2,"dropped":0}
+```
+
+Rules:
+
+- `raw` is the exact text read. Never store derived values or findings.
+- `t` is monotonic nanoseconds, taken at read time; ordering is authoritative.
+- `dropped` records probe loss so replay can reproduce coverage, not invent it.
+- Ground truth lives in a sidecar YAML (`expect: kind, culprit, min_confidence; forbid: [...]`).
+- Replay must be deterministic and reproduce identical `id` values.
+- Target size: a 2-minute capture is under 1 MB; larger captures must be downsampled or split.
 
 ---
 

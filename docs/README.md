@@ -3,8 +3,8 @@
 These documents are inputs, not an archive. They have different **authority** and different
 **audiences**, and loading the wrong set into an agent's context makes it worse, not better.
 
-Total repository documentation: ~4,350 lines.
-**What an agent is given: ~300 lines.**
+Total repository documentation: ~4,750 lines.
+**What an agent is given: ~320 lines.**
 
 That ratio is deliberate.
 
@@ -27,7 +27,7 @@ If two documents disagree, the higher-ranked one is correct **and the lower one 
 
 ## Reading sets
 
-### Agent set (~300 lines)
+### Agent set (~320 lines)
 
 1. `AGENTS.md` — the rules (103 lines)
 2. `docs/SCHEMA.md` — the contract (149 lines)
@@ -46,21 +46,21 @@ That is enough to understand, scope, and run the project.
 
 | Document | Answers | Lines |
 | --- | --- | --- |
-| [`METRICS.md`](METRICS.md) | per-platform metric catalogue: mechanisms, sources, exposure, metric ids | 368 |
-| [`AREAS.md`](AREAS.md) | vertical delivery: one user question per area, exit checklist, coverage matrix | 207 |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | how each mechanism works: probes, detectors, attribution math, armed capture | 636 |
-| [`PLAN.md`](PLAN.md) | the authoritative scope, budgets, coverage maps, schedule, go/no-go | 464 |
-| [`DEPLOYMENT.md`](DEPLOYMENT.md) | host vs container vs Kubernetes, capability matrix, privileges | 416 |
+| [`METRICS.md`](METRICS.md) | per-platform metric catalogue: mechanisms, sources, exposure, metric ids | 369 |
+| [`AREAS.md`](AREAS.md) | vertical delivery: one user question per area, exit checklist, coverage matrix | 208 |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | how each mechanism works: probes, detectors, attribution math, armed capture | 639 |
+| [`PLAN.md`](PLAN.md) | the authoritative scope, budgets, coverage maps, schedule, go/no-go | 469 |
+| [`DEPLOYMENT.md`](DEPLOYMENT.md) | host vs container vs Kubernetes, capability matrix, privileges | 456 |
 | [`FLEET.md`](FLEET.md) | hub, causal model, roles/edges, privacy, federation | 399 |
-| [`AUDIT.md`](AUDIT.md) | why scope was cut; the challenges to our own assumptions; threat model | 318 |
-| [`TASKS.md`](TASKS.md) | task ordering and cards | 278 |
+| [`AUDIT.md`](AUDIT.md) | why scope was cut; the challenges to our own assumptions; threat model | 324 |
+| [`TASKS.md`](TASKS.md) | task ordering and cards | 297 |
 | [`VISION.md`](VISION.md) | why this exists, who it is for, what it refuses to be | 261 |
 | [`LAUNCH.md`](LAUNCH.md) | GitHub About text, topics, issues, launch copy | 189 |
 | [`PRIOR-ART.md`](PRIOR-ART.md) | competitive landscape and the honest gaps | 188 |
 | [`LESSONS-STALLWATCH.md`](LESSONS-STALLWATCH.md) | the closest prior art's post-mortem, turned into requirements | 180 |
-| [`PROJECTS.md`](PROJECTS.md) | three projects, one contract; what "useful" means for each | 88 |
+| [`PROJECTS.md`](PROJECTS.md) | three projects, one contract; what "useful" means for each | 91 |
 | [`adr/`](adr/) | decisions that are expensive to reverse | ~215 |
-| [`SCHEMA.md`](SCHEMA.md) | the contract | 149 |
+| [`SCHEMA.md`](SCHEMA.md) | the contract | 166 |
 
 ---
 

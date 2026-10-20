@@ -96,6 +96,7 @@ The richest platform, because the kernel exposes mechanisms rather than aggregat
 | FUSE waiting requests and congestion | M1/M3 | `/sys/fs/fuse/connections/*/waiting` | **None** | v1.x — rclone/sshfs/gvfs stalls |
 | NFS client RPC latency and retransmits | M10 | `/proc/net/rpc/nfs` | Expert | post-1.0 |
 | Queue depth, scheduler, `rotational`, physical block size | M8 | `/sys/block/*/queue/*` | **None** | v1.x — misalignment and queue tuning |
+| Filesystem capacity / inode exhaustion | M6 | `statvfs`, kernel log | Partial | v1.1 |
 | Discard/TRIM backlog | M4 | btrfs sysfs, kernel log | **None** | post-1.0 |
 | eMMC `life_time`, SD manufacture date, CID | M9 | `/sys/block/mmcblk*/device/*` | **None** | v1.0 |
 | `mmc` timeouts, CRC errors, resets | M6 | kernel log | Expert | v1.0 |

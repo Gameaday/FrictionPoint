@@ -131,7 +131,7 @@ history. No agent-to-agent peering, ever. See [`docs/FLEET.md`](docs/FLEET.md).
 ## Documentation
 
 **Start here.** The docs have different authority; see [`docs/README.md`](docs/README.md) for precedence.
-An agent is given ~300 lines, not the whole repository.
+An agent is given ~320 lines, not the whole repository.
 
 | Read | Why |
 | --- | --- |
@@ -157,3 +157,16 @@ Reference (consult, do not load into an agent):
 - [`docs/PRIOR-ART.md`](docs/PRIOR-ART.md) — competitive landscape and the honest gaps
 - [`docs/LAUNCH.md`](docs/LAUNCH.md) — GitHub About text, topics, first issues, launch copy
 - [`docs/adr/`](docs/adr/) — decisions that are expensive to reverse
+
+---
+
+## Contributing and security
+
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) - DCO, one detector per PR, fixture and negative test required.
+- [`SECURITY.md`](SECURITY.md) - private disclosure, scope, and the design guarantees you can test against.
+- [`AGENTS.md`](AGENTS.md) - the same rules, written for coding agents.
+
+## License
+
+Dual-licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
+Contributions are accepted under the DCO; there is no CLA.

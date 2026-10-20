@@ -47,6 +47,7 @@ a failure.
 ## 3. The areas
 
 Ordered by user value × data availability × reuse of the attribution engine.
+**v1.0 ships A1 + A2.** A3-A6 are v1.1-v1.4; A7 is post-1.0.
 
 ### A0 — Foundations (not shippable)
 
@@ -72,29 +73,29 @@ The founding story and the engine every later area reuses.
 | Exit | storm names the unit; GC stall names the device with `culprit: null`; victim case names the writer, not the stalled unit; baseline silent; `why` answers in one sentence |
 | Not covered | memory, CPU, power, config, remote waits |
 
-### A2 — "Is the card, the power, or the thermal envelope failing?"
+### A2 — "Is the card, the power, or the thermal envelope failing?" (v1.0)
 
 Cheap, high-value, and the distinction between "fix the app" and "replace the hardware".
 
 | | |
 | --- | --- |
 | Signals | `vcgencmd get_throttled`, thermal zones, `mmc` errors, mount flags, eMMC `life_time`, SD date |
-| Detectors | `hw.undervoltage`, `hw.thermal_throttle`, `hw.mmc_errors`, `io.remount_readonly`, `hw.card_wear` (advisory) |
-| Fixtures | undervoltage bitmask, `remount_ro` (loop-mounted image only), `mmc` log capture, thermal soak |
+| Detectors | `hw.undervoltage`, `hw.thermal_throttle`, `hw.mmc_errors`, `io.remount_readonly`, `mem.swap_on_sd`, `hw.card_wear` (advisory) |
+| Fixtures | undervoltage bitmask, `remount_ro` (loop-mounted image only), `mmc` log capture, thermal soak, `swap_on_sd` |
 | Exit | separates hardware/power from workload; `remount_ro` advises backup before anything else; baseline silent |
 | Not covered | NVMe SMART, battery health |
 
-### A3 — "Is a setting making this worse?"
+### A3 — "Is a setting making this worse?" (v1.1)
 
 | | |
 | --- | --- |
 | Signals | `/proc/swaps`, `/proc/mounts`, `/proc/sys/vm/*`, jbd2 stats, per-file write growth |
-| Detectors | `mem.swap_on_sd`, `fs.mount_misconfig`, `io.writeback_throttle`, `io.journal_serialization` |
-| Fixtures | `swap_on_sd`, `dirty_throttle`, `journal_commit`, `mount_misconfig` |
+| Detectors | `fs.mount_misconfig`, `io.writeback_throttle`, `io.journal_serialization`, `fs.capacity` |
+| Fixtures | `dirty_throttle`, `journal_commit`, `mount_misconfig`, `fs_full` |
 | Exit | every finding carries a concrete, reversible command; nothing is applied; baseline silent |
 | Not covered | application configuration, kernel tuning beyond these knobs |
 
-### A4 — "Am I out of memory, or thrashing?"
+### A4 — "Am I out of memory, or thrashing?" (v1.2)
 
 | | |
 | --- | --- |
@@ -104,7 +105,7 @@ Cheap, high-value, and the distinction between "fix the app" and "replace the ha
 | Exit | distinguishes page-cache churn from real pressure; names the cgroup; baseline silent |
 | Not covered | leak detection over days, THP behaviour |
 
-### A5 — "Is something starving for CPU?"
+### A5 — "Is something starving for CPU?" (v1.3)
 
 | | |
 | --- | --- |
@@ -114,7 +115,7 @@ Cheap, high-value, and the distinction between "fix the app" and "replace the ha
 | Exit | reports `nr_throttled`/`throttled_usec` when present; names the cgroup; baseline silent |
 | Not covered | IRQ affinity, real-time scheduling |
 
-### A6 — "Am I waiting on something that isn't local?"
+### A6 — "Am I waiting on something that isn't local?" (v1.4)
 
 | | |
 | --- | --- |

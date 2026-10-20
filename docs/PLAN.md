@@ -188,13 +188,13 @@ the tool can name*, not how much exists.
 
 | # | Class | Detectors | Primary sources | Phase | Coverage |
 | --- | --- | --- | --- | --- | --- |
-| 1 | **Resource starvation** | `io.full_stall`, `mem.reclaim_pressure`, `cpu.runqueue_delay`, `cpu.ctx_switch_storm` | PSI, vmstat, schedstat | v0.2-0.3 | **High** |
-| 2 | **Latency amplification** | `io.small_write_storm`, `io.writeback_throttle`, `io.journal_serialization` | cgroup `io.stat` + `delayacct` cross-check, vmstat, jbd2 | v0.2-0.3 | **High** |
-| 3 | **Cascade / shared fate** | `cascade.shared_storage`, `cascade.remote_dependency` | findings + edges (hub) | v0.5 | **Medium** (hub only) |
-| 4 | **State-transition failure** | `io.remount_readonly`, `hw.mmc_errors`, `device_lost`, `visibility_lost` | kmsg, mount table, probe health | v0.2 | **Medium** (Linux) |
-| 5 | **Hardware degradation** | `io.device_stall`, `hw.thermal_throttle`, `hw.undervoltage`, `hw.mmc_errors` | diskstats, sysfs, `vcgencmd`, kmsg | v0.2 | **High on Pi**, none elsewhere |
-| 6 | **Misconfiguration with delayed cost** | `mem.swap_on_sd`, `fs.mount_misconfig`, `fs.log_growth` | `/proc/swaps`, `/proc/mounts`, fanotify | v0.2-0.3 | **Medium** |
-| 7 | **Unknown / residual** | `unknown_friction` | coverage accounting + armed capture | v0.3 | **By design** — says "I can't attribute this" |
+| 1 | **Resource starvation** | `io.full_stall`, `mem.reclaim_pressure`, `cpu.runqueue_delay`, `cpu.ctx_switch_storm`, `cpu.cgroup_throttle`, `cpu.steal` | PSI, vmstat, schedstat, `cpu.stat` | v1.0-v1.3 | **High** |
+| 2 | **Latency amplification** | `io.small_write_storm`, `io.writeback_throttle`, `io.journal_serialization` | cgroup `io.stat` + `delayacct`, vmstat, jbd2 | v1.0-v1.1 | **High** |
+| 3 | **Cascade / shared fate** | `cascade.shared_storage`, `cascade.remote_dependency` | findings + edges (hub) | post-1.0 | **Medium** (hub only) |
+| 4 | **State-transition failure** | `io.remount_readonly`, `hw.mmc_errors`, `device_lost`, `visibility_lost` | kmsg, mount table, probe health | v1.0 | **Medium** (Linux) |
+| 5 | **Hardware degradation** | `io.device_stall`, `hw.thermal_throttle`, `hw.undervoltage`, `hw.mmc_errors`, `hw.card_wear` | diskstats, sysfs, `vcgencmd`, kmsg | v1.0 | **High on Pi**, none elsewhere |
+| 6 | **Misconfiguration with delayed cost** | `mem.swap_on_sd`, `fs.mount_misconfig`, `fs.capacity`, `fs.log_growth` | swaps, mounts, `statvfs`, fanotify | v1.0-post | **Medium** |
+| 7 | **Unknown / residual** | `unknown_friction` | coverage accounting + armed capture | v1.0 | **By design** — says "I can't attribute this" |
 
 ### Explicit gaps (do not hand-wave)
 
@@ -212,12 +212,12 @@ the tool can name*, not how much exists.
 
 What we can honestly say at each stage. Anything not listed is "not claimed."
 
-| Story | v0.2 (Pi alpha) | v1.0 (Linux) | Post-1.0 |
+| Story | v1.0 (A1 + A2) | Later areas (A3-A6) | Post-1.0 |
 | --- | --- | --- | --- |
-| **Log flood takes down ingress** | "B stalled; 74% of write requests came from `receiver.service`; mean request 4 KiB." (the *bottleneck half*) | Same, with advice (buffer, move data dir, `commit=`), plus `blast_radius` from declared edges | Full chain: **A -> B -> C** with hub + topology; `cascade.log_sink` |
-| **SD card write lock / read-only rootfs** | `io.remount_readonly` + `io.device_stall` + `hw.mmc_errors`: "card failure, back up now" | Same + card age/wear hints + `fs.mount_misconfig` | Windows analogue (deferred) |
-| **Pi gets slow after hours** | `mem.swap_on_sd`, `io.writeback_throttle`, `io.journal_serialization` with named unit | Full ranking by lost time, per-unit advice | Cross-host: shared storage |
-| **"Which box is sick?"** | Per-host `baseline` | Same, plus JSONL export for whatever dashboard you own | Hub fleet grid + blast radius |
+| **Log flood takes down ingress** | "B stalled; 74% of write requests came from `receiver.service`; mean request 4 KiB." (the *bottleneck half*) | Advice (buffer, move data dir, `commit=`) plus `blast_radius` from declared edges | Full chain: **A -> B -> C** with hub + topology; `cascade.log_sink` |
+| **SD card write lock / read-only rootfs** | `io.remount_readonly` + `io.device_stall` + `hw.mmc_errors` + `hw.card_wear`: "card failure, back up now" | `fs.mount_misconfig` advice | Windows analogue (deferred) |
+| **Pi gets slow after hours** | `mem.swap_on_sd` + `hw.undervoltage`/`hw.thermal_throttle` with the responsible unit | `io.writeback_throttle`, `io.journal_serialization`, memory, CPU areas | Cross-host: shared storage |
+| **"Which box is sick?"** | Per-host `baseline` | JSONL export for whatever dashboard you own | Hub fleet grid + blast radius |
 | **Steam fails downloads after sleep** | *Not claimed* | *Not claimed* | Windows artifact (ETW power/NDIS) |
 | **Streamer USB dropout** | *Not claimed* | *Not claimed* | Windows artifact (ETW USB topology) |
 | **Android memory/storage opacity** | *Not claimed* | *Not claimed* | Exploratory advisor mode; may never ship |
@@ -302,18 +302,20 @@ No remote command execution in any tier. Remediation, when it exists, is local a
 
 Nightly: fuzz, hardware Pi, `geiger`. Weekly: dependency review.
 
-### Fixture corpus (start with six, not ten)
+### Fixture corpus (eight for v1.0)
 
 | Fixture | Injected fault | Ground truth |
 | --- | --- | --- |
 | `clean_baseline` | none | **zero findings** (false-positive gate) |
 | `sd_fsync_storm` | `fio` 4 KiB `fsync=1` | `io.small_write_storm` -> fio |
 | `sd_gc_stall` | aged card, natural stall | `io.device_stall`, no culprit |
+| `victim_heavy` | writer + blocked reader | names the writer, **never** the reader |
 | `swap_on_sd` | enable `dphys-swapfile` | `mem.swap_on_sd` |
-| `dirty_throttle` | large buffered writers | `io.writeback_throttle` |
-| `remount_ro` | injected ext4 error | `io.remount_readonly` + backup advice |
+| `remount_ro` | ext4 error on a loop-mounted image | `io.remount_readonly` + backup advice |
+| `undervoltage` | weak PSU / recorded `get_throttled` | `hw.undervoltage` |
+| `thermal_throttle` | sustained load, restricted cooling | `hw.thermal_throttle` |
 
-Stretch: `journal_commit`, `memory_reclaim`, `thermal_throttle`.
+Stretch (v1.1+): `dirty_throttle`, `journal_commit`, `fs_full`, `memory_reclaim`, `fuse_stall`.
 
 ---
 
@@ -330,29 +332,28 @@ docs, the numbers below hold. The sequence is unchanged; the calendar is ~2x lon
 | Slice | Production LOC | + tests | Hours @ ~35 LOC/h | Elapsed @ 11 h/week |
 | --- | --- | --- | --- | --- |
 | v0.1 skeleton (PSI, diskstats, 1 detector, report, doctor) | ~1.9k | ~0.9k | ~80 | 7-8 weeks |
-| v0.2 alpha (6 detectors, fixtures, replay, coverage) | ~2.6k | ~1.4k | ~115 | 10-11 weeks |
-| v0.3 beta (TUI, explain, episodes, fuzz, packaging) | ~1.8k | ~1.0k | ~80 | 7-8 weeks |
-| v1.0 (field soak, docs, release) | ~0.7k | ~0.4k | ~50 | 4-5 weeks (mostly elapsed) |
-| **Total to v1.0 Linux** | **~7k** | **~3.7k** | **~325** | **~6 months** |
+| v0.2 alpha (**A1**: storage stall, 4 detector rows, fixtures, replay, coverage) | ~2.6k | ~1.4k | ~115 | 10-11 weeks |
+| v0.3 beta (**A2**: hardware/power, 6 rows) + TUI, explain, fuzz, packaging | ~2.0k | ~1.1k | ~100 | 9-10 weeks |
+| v1.0 (field soak, truth audit, docs, release) | ~0.7k | ~0.4k | ~50 | 4-5 weeks (mostly elapsed) |
+| **Total to v1.0 Linux** | **~7.3k** | **~3.9k** | **~345** | **~7 months** |
 
-At 16 h/week this compresses to ~4 months. At 5 h/week it is a year. Both are fine; pretending
+At 16 h/week this compresses to ~5 months. At 5 h/week it is a year. Both are fine; pretending
 otherwise is not.
 
 | Weeks | Milestone | Deliverables | Gate |
 | --- | --- | --- | --- |
-| 1-2 | **v0.1 skeleton** | workspace + lints; PSI, diskstats, vmstat parsers; `io.full_stall`; `report`; `doctor`; `selftest`; zero-alloc tick test | Truthful summary on a real Pi; exit 3 with explanation when PSI is absent |
-| 3-4 | **Fixtures** | `record`/`replay`, fixture format, `clean_baseline` + `sd_fsync_storm`; `io.small_write_storm`; blame math + blocked-time cross-check | Replay is deterministic; clean baseline emits nothing |
-| 5-6 | **Pi alpha (v0.2)** | `io.device_stall`, `hw.thermal_throttle`, `hw.undervoltage`, `mem.swap_on_sd`, `io.remount_readonly`; coverage accounting; kmsg reader | 6 fixtures, >= 5 correct culprits, budgets met on Pi Zero 2 W |
-| 7-8 | **Agent + packaging** | daemon loop, staggered scheduling, JSONL sink, redaction tiers, systemd unit, `install.sh`, aarch64/armv7/armv6 builds | `systemd-analyze security` passes; binary < 5 MB; installer is idempotent |
-| 9-10 | **Beta (v0.3)** | `watch` TUI, webhook sink, `explain`, `unknown_friction` residual, fuzz corpus, perf gate, docs | Fuzz clean 24 h; zero findings on baseline; CI <= 5 min |
-| 11-12 | **Field validation** | Run on 3 real hosts (Pi 4, Zero 2 W, x86 server) for 2 weeks; tune thresholds; publish 3 case studies | Each case study has a reproducible fixture |
-| 13-14 | **v1.0 Linux** | Launch kit, demo GIF, README polish, signed release, Home Assistant MQTT discovery doc | Seven acceptance criteria below |
+| Month 1 | **v0.1 skeleton** (A0 partial) | workspace + lints; PSI, diskstats, vmstat parsers; `io.full_stall`; `report`; `doctor`; `selftest`; zero-alloc tick test | Truthful summary on a real Pi; exit 3 with explanation when PSI is absent |
+| Months 2-3 | **A1 complete (v0.2)** | `io.device_stall`, `unknown_friction`, coverage accounting, kmsg reader, `record`/`replay`, four fixtures, blame + blocked-time cross-check | Storm names the unit; GC stall names the device; victim not blamed; 8 fixtures total |
+| Months 4-5 | **A2 complete (v0.3)** + packaging | `hw.undervoltage`, `hw.thermal_throttle`, `hw.mmc_errors`, `io.remount_readonly`, `mem.swap_on_sd`, `hw.card_wear`; daemon, staggered schedule, systemd unit, `install.sh`, TUI, fuzz, perf gate | Hardware separated from workload; `systemd-analyze security` passes; binary < 5 MB |
+| Month 6 | **Field validation + truth audit** | Run on 3 hosts for 2 weeks; tune thresholds; manually audit 50 findings; publish 3 case studies | Audit miss rate recorded; each case study has a reproducible fixture |
+| Month 7 | **v1.0 Linux** | Launch kit, demo GIF, README polish, signed release | Seven acceptance criteria below |
+| Then | **v1.1-v1.4** | A3 config, A4 memory, A5 CPU, A6 dependencies; one area per release | Each area passes its exit checklist |
 
 ### v1.0 acceptance criteria
 
 1. On all three reference hosts, `baseline --for 60s` uses < 2 s of CPU and reports either a true
    finding or an explicit "nothing above threshold."
-2. The six-fixture corpus scores >= 5 correct culprit/kind pairs, with **zero** findings on
+2. The eight-fixture corpus scores >= 6 correct culprit/kind pairs, with **zero** findings on
    `clean_baseline`.
 3. Idle RSS <= 12 MB and CPU < 1% on a Pi Zero 2 W, verified by `doctor` on hardware.
 4. Zero `unsafe` outside `fp-trace`; `cargo-deny` clean; no panics in a 7-day soak.
@@ -432,8 +433,8 @@ three-week prototype in §17 and decide again.
 
 | # | Question | Why it decides the project |
 | --- | --- | --- |
-| 1 | Do you have hardware to reproduce **at least three** of the six faults? (Pi, a spare or aged SD card, and a loop-mounted ext4 image for destructive tests) | Fixtures are the testing foundation. **Never inject ext4 errors on a working rootfs** — use a loop device or a sacrificial card. Without real fixtures you are back to self-consistency testing. |
-| 2 | Can you commit **8-10 hours/week for ~6 months**? | Below that, scope must shrink to §17. |
+| 1 | Do you have hardware to reproduce **at least three** of the eight faults? (Pi, a spare or aged SD card, and a loop-mounted ext4 image for destructive tests) | Fixtures are the testing foundation. **Never inject ext4 errors on a working rootfs** — use a loop device or a sacrificial card. Without real fixtures you are back to self-consistency testing. |
+| 2 | Can you commit **8-10 hours/week for ~7 months**? | Below that, scope must shrink to §17. |
 | 3 | Will you ship **Linux-only v1.0** and refuse Windows, Android, and the fleet hub until then? | Every previous project of this shape died of platform sprawl. |
 | 4 | Will you write the unglamorous parts first — parsers, fuzzing, fixtures, `doctor` — before the TUI? | The TUI is the reward; the parsers are the product. |
 | 5 | Do you accept **advise-only** and explicit "I can't see" outcomes? | The trust model depends on never pretending. |
@@ -461,7 +462,7 @@ At the time of writing this plan is ~2,100 lines of design and **zero lines of c
 the single largest threat to shipping — larger than any technical unknown in this document.
 
 The architecture questions that mattered are answered: capability negotiation, no async, no unsafe,
-three dependencies, six detectors, unprivileged completeness, real fixtures, honest degradation.
+three dependencies, a ten-row detector catalogue, unprivileged completeness, real fixtures, honest degradation.
 Further planning now has **negative** value; every additional design document is a day not spent
 finding out whether PSI behaves the way we think on the actual hardware.
 

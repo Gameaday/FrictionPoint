@@ -18,7 +18,7 @@ Tags: `[OK]` holds up · `[FIX]` needs correction · `[CUT]` remove from scope �
 | A4 | "Identify all classes of error" | `[CUT]` | Impossible, and claiming it invites distrust. Replace with a **coverage matrix** (§PLAN) plus a first-class `unknown_friction` outcome and a capture-escalation path. |
 | A5 | "Help resolve issues" | `[FIX]` | Core **advises only**. Remediation is a separate, consent-gated companion (post-1.0). Never automatic. |
 | A6 | "One binary, many subcommands" | `[OVERTURNED]` | A root-running agent must **not link a network stack**. Two artifacts (`frictionpoint`, `frictionpoint-hub`) from one workspace, one `Finding` schema, versioned together. See ADR-0004. |
-| A7 | "12 detectors in Phase 1" | `[CUT]` | Six detectors + residual. The rest are M2+. Twelve detectors is four weekends of fixture work alone. |
+| A7 | "12 detectors in Phase 1" | `[CUT]` | Eight detector rows for v1.0 (areas A1+A2 in `AREAS.md`), plus residual. The original twelve was still too many. |
 | A8 | "eBPF gives `traced` confidence" | `[CUT]` from v1.0 | `aya` + BTF + a build pipeline + CO-RE testing is a project in itself, and many SBC kernels lack BTF. v1.0 caps at `correlated`; `traced` arrives with the optional `fp-trace` feature. **Do not market `traced` before it exists.** |
 | A9 | "A hub can be added later without rework" | `[OK]` | Holds **only if** the five schema seams in `FLEET.md` ship in v0.1. That is now a release gate. |
 | A10 | "Streamers / USB / sleep-wake story" | `[CUT]` from v1.0 | Keep it as the *reason Windows matters*, not as a v1.0 promise. It requires ETW + USB topology + a second platform. |
@@ -306,10 +306,16 @@ fleet mode.
 | Item | Estimate |
 | --- | --- |
 | v0.1 walking skeleton (PSI + full_stall + report + doctor) | 1.5-2 weeks part-time |
-| v0.2 Pi alpha (6 detectors, fixtures, record/replay, perf gate) | +4 weeks |
+| v0.2 Pi alpha (A1: storage stall, 4 rows, fixtures, replay, perf gate) | +4 weeks |
 | v0.3 Pi beta (TUI, alerts, packaging, hardening, fuzzing) | +4 weeks |
 | v1.0 Linux (field validation, corpus, docs, launch) | +4 weeks |
 | **Total to v1.0** | **~14 weeks part-time** |
+
+> **Superseded:** these figures assumed ~100 LOC/hour. `PLAN.md` §11 estimates ~7 months
+> part-time at a realistic 30-40 LOC/hour.
+> **Superseded:** `PLAN.md` §11 now estimates ~7 months part-time at 30-40 LOC/hour. The table
+> below assumed ~100 LOC/hour and was optimistic.
+
 | Fleet hub (v0.4) | +4-6 weeks |
 | Windows | +8-12 weeks (separate effort, separate artifact) |
 

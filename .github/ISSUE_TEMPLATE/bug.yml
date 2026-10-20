@@ -1,0 +1,65 @@
+name: Bug report
+description: Something is wrong with FrictionPoint itself
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please redact personal paths and process names you consider private.
+        For vulnerabilities, use SECURITY.md - do not open an issue.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what did FrictionPoint do instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `frictionpoint --version --json`
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: Host
+      description: Distribution, `uname -r`, architecture, and board model if it is an SBC
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: How are you running it?
+      options:
+        - Host + systemd
+        - Docker
+        - Kubernetes
+        - CLI only (no daemon)
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`frictionpoint doctor` output"
+      description: This tells us what the tool can and cannot see on your host
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: finding
+    attributes:
+      label: Relevant finding JSON (optional)
+      render: json
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I removed or redacted personal paths and process names
+          required: true
+        - label: This is not a security vulnerability
+          required: true
