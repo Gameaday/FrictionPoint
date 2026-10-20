@@ -70,7 +70,7 @@ detail.
 | fanotify file-level attribution | F (`CAP_SYS_ADMIN`) | **-** | P (host mount ns needed) | **-** |
 | eBPF per-request latency | F (root, BTF) | - | P (privileged + tracefs + BTF) | P |
 | USB topology | F (`/sys/bus/usb`) | P | F | P |
-| **Overall claim strength** | **traced-capable** | **severity only** | **correlated/traced** | **correlated** |
+| **Overall claim strength** | **correlated** (traced with the optional `trace` feature) | **severity only** | **correlated** | **correlated** |
 
 Two consequences worth designing around now:
 

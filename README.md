@@ -7,8 +7,9 @@ A tiny Rust diagnostic engine that correlates PSI stalls, disk latency, fsync st
 pressure, and peripheral dropouts into plain-English root causes — naming the process, unit,
 and file responsible. Linux, Windows, and SBCs. Local-first, low overhead.
 
-> **Status:** pre-alpha / design phase. Phase 1 targets Raspberry Pi & embedded Linux storage
-> stalls. Nothing here is stable yet, including the architecture.
+> **Status:** pre-alpha / design phase. **v1.0 is Linux/SBC only.** Windows, Android, and the
+> fleet hub are explicitly post-1.0 and must not shape the v1.0 code. Nothing here is stable yet,
+> including the architecture. Build plan: [`docs/PLAN.md`](docs/PLAN.md).
 
 ---
 
@@ -62,7 +63,7 @@ In all four cases the standard toolset answers the wrong question. FrictionPoint
              /proc/pressure/io  /proc/diskstats  /proc/412/io
   TRY        Batch or buffer the agent's log writes; move its data dir off the SD card;
              raise ext4 commit interval. See `frictionpoint explain <id>`.
-  NOTE       Confidence: correlated. Re-run with `--trace` for per-request proof.
+  NOTE       Confidence: correlated. Per-request tracing (`traced`) is post-1.0.
 ```
 
 ---
@@ -93,9 +94,9 @@ In all four cases the standard toolset answers the wrong question. FrictionPoint
 | --- | --- | --- |
 | Linux / Raspberry Pi / SBCs | **1 (now)** | PSI, cgroup v2, procfs, optional eBPF. Primary target. |
 | Linux servers & containers | 2 | Headless agent, read-only cgroup mount, Prometheus/OTLP export. |
-| Windows | 3 | ETW: DPC/ISR latency, disk, USB bus resets, sleep/wake re-init. Streamer wedge. |
-| Android | 4 | `storaged`/`dumpsys` per-UID I/O (unrooted "advisor mode"); Perfetto for deep mode. |
-| macOS / others | Later | Only with honest, limited capability reporting. |
+| Windows | Post-1.0 | Separate artifact: ETW disk, DPC/ISR, USB resets, sleep/wake. The streamer wedge. |
+| Android | Exploratory | `storaged`/`dumpsys` per-UID I/O (unrooted "advisor mode"); may never ship. |
+| macOS / others | Not planned | Removed from the roadmap. |
 
 We deliberately ship **one platform well** before adding a second. Cross-platform parity is
 the graveyard this kind of project usually dies in — so capabilities are negotiated at runtime
@@ -107,7 +108,7 @@ One static binary, three supported shapes:
 
 | Shape | Fidelity | Use |
 | --- | --- | --- |
-| **Host + systemd** | Full (traced-capable) | **Recommended.** Raspberry Pi, single boxes, homelab nodes |
+| **Host + systemd** | Full (v1.0: correlated; `traced` with the post-1.0 trace feature) | **Recommended.** Raspberry Pi, single boxes, homelab nodes |
 | **Container (host-visibility recipe)** | Partial (correlated) | Servers, Kubernetes DaemonSet |
 | **Container (defaults)** | Severity only — *announced as degraded* | Try-before-install, CI |
 
@@ -129,6 +130,10 @@ history. No agent-to-agent peering, ever. See [`docs/FLEET.md`](docs/FLEET.md).
 
 ## Documentation
 
+- [`docs/PLAN.md`](docs/PLAN.md) — **authoritative build plan**: crate map, dependency budget,
+  memory/CPU budgets, coverage maps, resilience, 14-week schedule, definition of done.
+- [`docs/AUDIT.md`](docs/AUDIT.md) — the self-audit: overclaims challenged, scope cut, technical
+  corrections, threat model, what we will never be able to do.
 - [`docs/VISION.md`](docs/VISION.md) — why this exists, who it's for, what it refuses to be.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — data model, crates, detectors, perf budget,
   Phase 1 spec, testing strategy.

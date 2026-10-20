@@ -1,11 +1,15 @@
-# FrictionPoint — Architecture & Phase 1 Specification
+# FrictionPoint — Architecture & v1.0 Specification
+> **Scope and schedule are authoritative in [`PLAN.md`](PLAN.md); the audit of prior
+> assumptions is in [`AUDIT.md`](AUDIT.md).** This document specifies mechanisms and data
+> sources. Where they disagree, PLAN wins.
 
-This document is the working technical contract for Phase 1 (Raspberry Pi / embedded Linux).
+
+This document is the working technical contract for v1.0 (Linux / Raspberry Pi / embedded).
 It is intentionally concrete: crate boundaries, traits, data sources, math, and budgets.
 
 ---
 
-## 1. Phase 1 scope
+## 1. v1.0 scope
 
 **Goal:** On a Raspberry Pi, answer *"why did this box stop responding?"* with a defensible,
 evidence-backed culprit, using < 1% CPU and no disk writes at idle.
@@ -22,7 +26,7 @@ evidence-backed culprit, using < 1% CPU and no disk writes at idle.
 - Human-readable report + JSON output + `explain` + `doctor`.
 - Record/replay so every detector is testable without root or a faulted machine.
 
-### Explicitly out of scope for Phase 1
+### Explicitly out of scope for v1.0
 
 Windows, Android, macOS, GUI, remote fleet, auto-remediation, vulnerability scanning,
 driver/firmware updates, LLM calls at runtime, long-term metric storage.
@@ -48,7 +52,7 @@ Everything below is read-only. Cost is per sample on a Pi-class device.
 | **Swap** | `/proc/swaps`, `/sys/block/zram*` | swap-on-SD, zram sizing | none | tiny |
 | **Kernel log** | `journalctl -k` / `dmesg` (ring) | `mmc` timeouts, ext4 errors, OOM, USB resets | `adm`/root | event-driven |
 | **fanotify** | `fanotify_init` + mount marks | per-file write/open events with PID | `CAP_SYS_ADMIN` | medium |
-| **eBPF** | kprobes/tracepoints (`block_rq_issue`/`complete`, `sys_enter_fsync`) | **per-request latency attribution** | root + BTF | high, armed only |
+| **eBPF** (v1.x, optional) | kprobes/tracepoints (`block_rq_issue`/`complete`, `sys_enter_fsync`) | **per-request latency attribution** | root + BTF | high, armed only |
 
 ### Traps we must handle explicitly
 
@@ -178,38 +182,34 @@ out of NTP skew. The hub, pane, and federation are specified separately in `docs
 
 ## 4. Crates and dependency direction
 
-```text
-crates/
-  fp-core/        model, detectors, scoring, narrative, advice ids
-                  -> zero I/O, #![deny(unsafe_code)], no platform deps
-  fp-probe/       Probe trait, capability negotiation, registry, replay driver
-  fp-store/       ring buffers, per-entity series, windowing, interning
-  fp-linux/       PSI, procfs, cgroup v2, diskstats, mmc, vcgencmd, fanotify, eBPF(feature)
-  fp-windows/     ETW, PDH, GetProcessIoCounters, USB topology
-  fp-android/     storaged/dumpsys/procfs subset
-  fp-daemon/      supervisor, config, episodes, sinks, signals
-  fp-cli/         clap commands, ratatui live view, report/explain/doctor/record/replay
-  fp-export/      JSONL, Prometheus, OTLP
-  fp-mcp/         MCP server exposing findings to agents (later)
-xtask/            verify pipeline, fixture tooling, perf gates
-fixtures/         recorded .fpz scenarios + ground-truth manifests
-docs/
-```
+Authoritative crate map, dependency budget, and LOC budgets: [`PLAN.md`](PLAN.md) §2-3.
+Summary:
+
+| Crate | Role | `unsafe` |
+| --- | --- | --- |
+| `fp-core` | pure model, detectors, scoring, narrative | forbid |
+| `fp-linux` | parsers + probes (9 files) | forbid |
+| `fp-agent` | tick loop, scheduling, coverage, sinks | forbid |
+| `fp-cli` | binary: report/explain/doctor/record/replay/watch | forbid |
+| `fp-trace` | optional fanotify/eBPF | **only quarantine** |
+| `fp-hub` | optional fleet server (post-1.0) | forbid |
+| `fp-windows` | optional ETW backend (post-1.0) | contained |
 
 Rules:
 
-- `fp-core` never depends on a platform crate. Platform crates never depend on each other.
-- Detectors live in `fp-core` and receive a `WindowView`; they cannot open files, read clocks,
-  or spawn tasks. This is what makes them testable and agent-friendly.
-- All platform-specific parsing lives behind `Probe`; a parser bug is a fuzz target, not a
-  detector bug.
+- `fp-core` never depends on a platform crate, and opens no files. Platform crates never depend on
+  each other.
+- Detectors live in `fp-core` and receive a `WindowView`; they cannot read clocks, open files, or
+  spawn tasks. This is what makes them testable and agent-friendly.
+- All platform parsing lives behind `Probe`; a parser bug is a fuzz target, not a detector bug.
+- The default agent binary links no networking code (ADR-0004).
 
 ---
 
 ## 5. Core traits
 
 ```rust
-// fp-probe/src/lib.rs
+// fp-core/src/probe.rs  (trait; implemented by fp-linux, replayed by fp-agent)
 pub trait Probe: Send {
     fn id(&self) -> ProbeId;
     fn capabilities(&self) -> Capabilities;
@@ -272,12 +272,17 @@ Consequences:
 
 - Idle cost is independent of trace capability, so the tool is safe to leave running forever.
 - Escalation is where the interesting data comes from, and it is bounded.
-- `--trace` lets a user force Level 2 for a known-bad reproduction.
+- `--trace` lets a user force Level 2 for a known-bad reproduction (post-1.0; **v1.0 caps at
+  Level 1**, so all v1.0 findings are `observed` or `correlated`).
 - Every finding records which level produced it, which is exactly the confidence tier.
 
 ---
 
-## 7. Phase 1 detector catalogue
+## 7. Detector catalogue
+
+**Six of these ship in v1.0** (`io.full_stall`, `io.small_write_storm`,
+`io.device_stall`, `mem.swap_on_sd`, `hw.thermal_throttle`, `io.remount_readonly`). The rest are
+phase-marked backlog, not commitments.
 
 Each detector is a small, independently testable unit with a recorded fixture and a golden
 output. This is also the unit of work for agent-driven development (one detector = one PR).
@@ -382,6 +387,8 @@ Rules:
 
 ## 10. Budgets and how they are enforced
 
+Authoritative numbers and enforcement: [`PLAN.md`](PLAN.md) §5.
+
 | Metric | Idle (Level 0) | Armed (Level 1-2) |
 | --- | --- | --- |
 | CPU, Pi Zero 2 W | < 1% of one core | < 5% |
@@ -455,7 +462,7 @@ Initial corpus (build these first, they are also the marketing):
 | Parsers | `proptest` + `cargo-fuzz` | procfs/diskstats edge cases, truncated reads, counter rollover |
 | Detectors | `insta` golden + replay corpus | wrong culprit, wrong kind, confidence inflation |
 | Scoring | property tests | shares never exceed 1.0, no division by zero, monotonic severity |
-| Ring buffer | `loom` + `miri` | concurrency and UB in the only unsafe code |
+| Ring buffer | unit + property tests | wrap-around, eviction, no concurrency |
 | Narratives | `insta` snapshots | misleading wording, missing evidence |
 | Budgets | custom allocator + `xtask perf` | overhead regressions |
 | Live | fault injection on real Pi | everything above being wrong in reality |
@@ -521,90 +528,50 @@ tools betray people.
 
 ---
 
-## 14. Roadmap and acceptance criteria
+## 14. Roadmap
 
-### M0 - Walking skeleton (about a week)
+**Authoritative schedule and acceptance criteria: [`PLAN.md`](PLAN.md) §11-12.** Summary only:
 
-Workspace, `fp-core` model, PSI probe, `io.full_stall` detector, text `report` against live
-data, `doctor`. No TUI, no daemon, no eBPF.
+| Milestone | Content | Gate |
+| --- | --- | --- |
+| v0.1 | PSI + `io.full_stall` + `report` + `doctor` | truthful output; exit 3 when blind |
+| v0.2 | 6 detectors, fixtures, record/replay, coverage | >= 5/6 correct; budgets on Pi Zero |
+| v0.3 | TUI, webhook, `explain`, residual, fuzz, perf gate | zero findings on clean baseline |
+| v1.0 | field validation, packaging, docs, launch | five acceptance criteria in PLAN §11 |
+| v0.4-v0.6 | hub, causal reasoner, pane, MQTT | gated on real multi-host demand |
+| post-1.0 | `trace` feature, Windows artifact, Android (exploratory) | separate efforts |
 
-**Done when:** `cargo run -- report --since 60s` produces a truthful stall summary on a Pi and
-on a laptop, and exits 3 with an explanation when PSI is unavailable.
-
-### M1 - Pi alpha (weeks 2-5)
-
-Six detectors (`io.full_stall`, `io.small_write_storm`, `io.device_stall`, `mem.swap_on_sd`,
-`hw.thermal_throttle`, `io.remount_readonly`), record/replay, five fixtures, `explain`,
-perf gate, static `aarch64-unknown-linux-musl` release, systemd unit.
-
-**Done when:**
-
-- `clean_baseline` produces zero findings; the nine seeded scenarios name the right culprit in
-  at least seven, with correct confidence tiers.
-- Idle budgets met on a Pi Zero 2 W, measured by the tool's own `doctor`.
-- A new user can install, run `baseline`, and read the output without reading documentation.
-
-### M2 - Pi beta (weeks 6-10)
-
-Blame scoring, episodes/cascades, TUI live view, JSONL/Prometheus export, alert hooks
-(`systemd-cat`, webhook), Pi hardware checks (card age, `mmc` errors, undervoltage history),
-fanotify file-level attribution, held-out benchmark corpus.
-
-### M3 - Servers and containers
-
-Read-only `/sys/fs/cgroup` DaemonSet, per-container attribution, OTLP, cascade detection across
-co-tenanted services. This is where the original log-flood incident becomes a first-class
-finding (`cascade.shared_storage`).
-
-### M4 - Windows alpha (the streamer wedge)
-
-ETW: per-process file I/O latency, DPC/ISR time per driver, `Microsoft-Windows-USB-*` resets,
-`Kernel-Power` sleep/wake transitions. PDH fallback. No parity claims; capability table is
-honest.
-
-### M5 - Android advisor mode
-
-`dumpsys storaged`, `/proc/uid_io/stats` where readable, `dumpsys diskstats`, memory pressure
-events. Unrooted = advisory only. Rooted/Perfetto = deeper tier.
-
-### M6 - Fix companion + recipe registry
-
-Separate binary, dry-run by default, signed recipe index, explicit consent for every change.
-
-### M7 - Fleet phases, then MCP
-
-Fleet is sequenced in `docs/FLEET.md` §10 and gated on real multi-host users: v0.2 one-way
-MQTT/webhook export, v0.3 `hub` + read-only `/v1` API + `fleet` TUI, v0.4 causal reasoner
-(roles, edges, blast radius), v0.5 web pane, v0.6 hub-to-hub federation. An MCP server exposing
-findings and episodes comes after the API stabilizes, so agents query structure rather than
-scraping output.
+Six detectors ship in v1.0; the rest of the catalogue in §7 is marked by phase and is not a v1.0
+commitment.
 
 ---
 
-## 15. Workspace layout
+## 15. Repository skeleton (files, not crates)
 
 ```text
-Cargo.toml                 # [workspace] resolver = "2"
-crates/fp-core/
-  src/model.rs
-  src/detect/{io,mem,cpu,hw}.rs
-  src/score.rs
-  src/narrative.rs
-crates/fp-probe/src/{lib.rs,replay.rs,capabilities.rs}
-crates/fp-store/src/{ring.rs,series.rs,intern.rs}
-crates/fp-linux/src/{psi.rs,cgroup.rs,procfs.rs,diskstats.rs,mmc.rs,log.rs,fanotify.rs,ebpf.rs}
-crates/fp-cli/src/{main.rs,cmd/*,tui/*}
-crates/fp-daemon/src/{main.rs,supervisor.rs,episode.rs,sinks/*}
-crates/fp-export/src/{prometheus.rs,otlp.rs,jsonl.rs}
-fixtures/{pi,server,clean}/*.fpz + *.yaml
-xtask/src/main.rs
-docs/{VISION,ARCHITECTURE,PRIOR-ART,LAUNCH}.md
-docs/adr/0001-*.md
+crates/fp-core/src/
+  lib.rs model.rs ids.rs time.rs series.rs intern.rs hist.rs score.rs narrative.rs
+  detect/mod.rs detect/io.rs detect/mem.rs detect/cpu.rs detect/hw.rs detect/residual.rs
+crates/fp-linux/src/
+  lib.rs psi.rs cgroup.rs procfs.rs diskstats.rs vmstat.rs jbd2.rs mmc.rs thermal.rs swap.rs kmsg.rs
+crates/fp-agent/src/
+  lib.rs loop.rs config.rs schedule.rs coverage.rs spool.rs redact.rs notify.rs sink/{mod,jsonl,http}.rs
+crates/fp-cli/src/
+  main.rs tui.rs cmd/{mod,baseline,report,explain,doctor,selftest,record,replay,export,watch}.rs
+crates/fp-trace/src/       # optional, only crate with unsafe
+  lib.rs fanotify.rs
+crates/fp-hub/src/         # post-1.0
+  main.rs ingest.rs store.rs api.rs episode.rs
+xtask/src/main.rs          # verify pipeline, perf gate, fixture tooling
+fixtures/{pi,server,clean}/*.yaml
+fixtures/bin/*.fpz         # recorded raw samples (small, committed)
+docs/adr/*.md
 ```
 
-Workspace hygiene from day one: `resolver = "2"`, shared `[workspace.lints]`, `rust-version`
-pinned, `cargo-deny` for licenses/advisories, `cargo-nextest` in CI, `cargo fmt --check` and
-`clippy -D warnings` as required gates.
+Hygiene from day one: `resolver = "2"`, `[workspace.lints]`, pinned `rust-version`,
+`#![forbid(unsafe_code)]` in every crate except `fp-trace`, `cargo-deny` for licenses/advisories,
+`cargo-machete` for unused dependencies, and `cargo fmt --check` + `clippy -D warnings` as required
+gates.
 
 ---
 

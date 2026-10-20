@@ -178,13 +178,13 @@ declares how it knows:
 | --- | --- | --- | --- |
 | `observed` | Directly measured fact | PSI, diskstats, thermal | "The system lost 12.4s." |
 | `correlated` | Statistically dominant during the stall | cgroup `io.stat` share, per-pid counters | "X accounts for 74% of write requests in this window." |
-| `traced` | Causally linked per request | eBPF / ETW stack attribution | "X issued the 1,842 requests that blocked for 11.9s." |
+| `traced` | Causally linked per request | eBPF / ETW stack attribution (**post-1.0**) | "X issued the 1,842 requests that blocked for 11.9s." |
 
 The UI must never render `correlated` as certainty. "70% of calls during slow downs came from
 Y" is a *correlation* claim, and is presented as such — with the sample size.
 
 This also gives a natural upgrade path: the same finding gets *promoted* from correlated to
-traced when the user opts into deeper instrumentation, without changing the vocabulary.
+traced when the user opts into deeper instrumentation (post-1.0), without changing the vocabulary.
 
 ---
 

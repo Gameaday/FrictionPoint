@@ -148,7 +148,8 @@ performance overlay (games), `smartctl` (drive health, not workload), `btrfs`/ZF
   Android's LMKD. The cheap, correct stall metric already ships on the machines we target.
 - **cgroup v2 is the default** on modern distros, giving per-unit attribution for free.
 - **Rust's eBPF story matured** (`aya`, 4.9k*): pure-Rust, CO-RE, no libbpf, single static
-  binary. Deep tracing no longer requires a C toolchain or distro-specific build.
+  binary. Deep tracing no longer requires a C toolchain or distro-specific build. (Not used in
+  v1.0; it is the planned upgrade path for the optional `trace` feature.)
 - **SBCs are everywhere** and their storage is the bottleneck. The Pi is the perfect forcing
   function for a low-overhead design.
 - **Streaming/peripheral complexity went mainstream**, and nobody explains USB bus failures to

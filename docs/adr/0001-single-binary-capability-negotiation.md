@@ -1,6 +1,6 @@
 # ADR-0001: One binary, capability negotiation, deployment as packaging
 
-- **Status:** Accepted
+- **Status:** Accepted, **partially amended by ADR-0004** (two artifacts; the agent links no networking)
 - **Date:** 2026-10-20
 - **Deciders:** project owner
 - **Related:** `docs/DEPLOYMENT.md`

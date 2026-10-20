@@ -50,7 +50,7 @@ homelab  etw  android  cli  low-overhead
 - `CONTRIBUTING.md`: "one detector = one PR" with a required fixture and golden output.
 - Branch protection on `main`: `fmt`, `clippy -D warnings`, `nextest`, `xtask perf`.
 - Releases: static `aarch64-unknown-linux-musl`, `x86_64-unknown-linux-musl`, checksums,
-  and a signed `install.sh`. No release until Phase 1 acceptance criteria pass.
+  and a signed `install.sh`. No release until the v1.0 acceptance criteria pass.
 
 Distribution ladder (in order, each step only after the previous is boring):
 
@@ -93,7 +93,7 @@ The before/after in one screen is the entire pitch. It also happens to be the
 > at low queue depth). Written in Rust, ~1% CPU idle, writes nothing to disk unless it finds
 > something.
 >
-> Phase 1 is Raspberry Pi storage stalls because that's where it hurts most. Windows/Android
+> v1.0 is Raspberry Pi storage stalls because that's where it hurts most. Windows/Android
 > are planned, not claimed.
 >
 > The most useful thing you can tell me: what's the *last* mysterious slowdown you gave up
@@ -122,7 +122,7 @@ The before/after in one screen is the entire pitch. It also happens to be the
 | 2 | PSI parser + `proptest` coverage | S | Must handle missing files, partial lines, rollover |
 | 3 | `diskstats` parser + counter-rollover tests | S | Field indices are a classic bug source |
 | 4 | `procfs` per-pid IO parser with PID-reuse guard | M | Use `starttime` to detect reuse |
-| 5 | `Sample`/`Series` ring buffer + `loom` test | M | Only place `unsafe` is allowed |
+| 5 | `Sample`/`Series` ring buffer + property tests | M | Fixed array + index; no `unsafe` |
 | 6 | `io.full_stall` detector + fixture | S | First end-to-end finding |
 | 7 | `io.small_write_storm` detector + blame math | M | Core differentiator |
 | 8 | `io.device_stall` detector (low queue depth signature) | M | Needs negative test vs storm |
@@ -138,6 +138,8 @@ The before/after in one screen is the entire pitch. It also happens to be the
 | 18 | Docs: "what these numbers mean" | S | Explains PSI to normal humans |
 | 19 | systemd unit + sysusers/tmpfiles + hardened `install.sh` | S | Least-privilege ladder in practice |
 | 20 | Compose + DaemonSet recipes with a `doctor`-asserted visibility test | M | Proves the capability matrix instead of claiming it |
+| 21 | Staggered PID scheduler (1/5 of PIDs per tick, round-robin) | M | Keeps idle CPU under budget |
+| 22 | Coverage accounting: attributed/observed requests + eviction counters | M | A diagnosis needs a denominator |
 
 ---
 
@@ -175,3 +177,6 @@ findings and the budgets are met.
 - Do not promise automated fixes. The value at launch is the diagnosis.
 - Do not call it AI-powered. It is deterministic, and that is a feature.
 - Do not imply a container gets full fidelity. Say which mode has which visibility.
+- Do not claim `traced` confidence or eBPF in v1.0. v1.0 caps at `correlated`.
+- Do not claim "<1% CPU" or "zero disk writes" until measured. Say "designed for" or quote the
+  measured figure from the reference Pi, and note that journald may persist state changes.
