@@ -43,6 +43,7 @@ Everything below is read-only. Cost is per sample on a Pi-class device.
 | **PSI (cgroup)** | `/sys/fs/cgroup/<path>/*.pressure` | per-unit / per-container stalls | none (read) | O(units) reads |
 | **cgroup I/O** | `/sys/fs/cgroup/<path>/io.stat` | per-unit bytes **and request counts** per device | none (read) | O(units) |
 | **Per-process I/O** | `/proc/<pid>/io` | `rchar,wchar,syscr,syscw,read_bytes,write_bytes` | own processes; root for all | O(procs) |
+| **Per-task block wait** | `/proc/<pid>/stat` field 42 (`delayacct_blkio_ticks`); `/proc/<pid>/task/*/stat` | cumulative block-I/O wait per task (10 ms ticks), the closest cheap proxy for per-process blocked time | own; root for all | O(procs) main thread; O(tasks) **armed only** |
 | **Scheduler** | `/proc/<pid>/schedstat`, `/proc/<pid>/status` | run-queue wait, voluntary/involuntary switches | root for all | O(procs) |
 | **Block device** | `/proc/diskstats` | IOPS, in-flight queue depth, service time | none | tiny |
 | **Memory / writeback** | `/proc/vmstat`, `/proc/meminfo` | dirty pages, writeback, direct reclaim, major faults | none | tiny |
@@ -53,6 +54,16 @@ Everything below is read-only. Cost is per sample on a Pi-class device.
 | **Kernel log** | `journalctl -k` / `dmesg` (ring) | `mmc` timeouts, ext4 errors, OOM, USB resets | `adm`/root | event-driven |
 | **fanotify** | `fanotify_init` + mount marks | per-file write/open events with PID | `CAP_SYS_ADMIN` | medium |
 | **eBPF** (v1.x, optional) | kprobes/tracepoints (`block_rq_issue`/`complete`, `sys_enter_fsync`) | **per-request latency attribution** | root + BTF | high, armed only |
+
+### Rejected or conditional sources
+
+| Source | Verdict | Reason |
+| --- | --- | --- |
+| **`inotify`** | **Rejected** | Reports *that* a file changed, not **which process** changed it. Per-inode watches, `max_user_watches` limits, no mount-wide scope. `fanotify` is the correct API (mount marks + PID/FID). |
+| **`perf_event`** | **Spike only** | Can count context switches per thread group in one fd (`inherit=1`), but costs an fd per tracked process and depends on `perf_event_paranoid` + `CAP_PERFMON`. Try it only if the CPU budget is missed. |
+| **`ptrace` / `LD_PRELOAD`** | **Rejected** | Serializes or injects into the target; breaks performance and security guarantees. |
+| **PresentMon** | **Not a source** | Frame/present timing, not system I/O or power transitions. |
+| **`delayacct_blkio_ticks`** | **Conditional** | Requires `CONFIG_TASK_DELAY_ACCT` (and not `nodelayacct`); 10 ms granularity; per-task, so a thread group needs `/proc/<pid>/task/*/stat` — use it as an armed cross-check, not a per-tick source. |
 
 ### Traps we must handle explicitly
 
@@ -68,8 +79,10 @@ Everything below is read-only. Cost is per sample on a Pi-class device.
 - **A culprit that exits takes its cgroup with it.** Keep a short-lived tombstone of recently
   removed cgroups + PIDs so findings can still name the dead process.
 - **`/proc/<pid>/io` does not count `fsync`.** `syscw` counts `write(2)`, not `fsync(2)` or
-  `sync_file_range(2)`. fsync frequency requires fanotify (`FAN_FSYNC`-capable kernels) or an
-  eBPF syscall tracepoint. Do not infer fsync rate from `syscw`.
+  `sync_file_range(2)`. **fanotify does not report fsync either** (no `FAN_FSYNC`); it reports
+  open/read/write/close/create/move/error. Actual fsync counting needs an eBPF syscall tracepoint,
+  so v1.0 *infers* fsync storms from write-syscall rate + small mean request size + elevated
+  latency, and labels them `correlated`. Do not infer fsync rate from `syscw`.
 - **`read_bytes`/`write_bytes` are bytes submitted to the block layer**, not completed bytes;
   they're a demand signal, not a latency measurement.
 - **`%util` from `diskstats` is a lie on flash.** `time_io` measures busy time, and an SD card
@@ -353,6 +366,29 @@ Guardrails:
 - Always publish the denominator (total requests observed) with the share.
 - If the window contains a cgroup that disappeared, attribute to its tombstone and say so.
 - Never mix devices: shares are per `major:minor`, then aggregated only for display.
+
+### Cross-check: blocked-time share
+
+Request share answers "who sent the work." A second, independent signal answers "who was blocked":
+`delayacct_blkio_ticks` deltas for the top suspects.
+
+```text
+blocked_share_i = delta(delayacct_blkio_ticks_i) / sum_j delta(delayacct_blkio_ticks_j)
+```
+
+Agreement between `friction_i` and `blocked_share_i` promotes the finding's confidence. Disagreement
+is diagnostically interesting and must be surfaced, not averaged away:
+
+| Pattern | Interpretation |
+| --- | --- |
+| High request share, high blocked share | straightforward culprit |
+| High request share, **low** blocked share | cheap requests (large sequential writes) — probably not the pain |
+| Low request share, **high** blocked share | few, pathological requests (fsync/small random) — real culprit |
+| Neither, high PSI | device or kernel work (`io.device_stall`, jbd2) |
+
+Caveats: 10 ms tick granularity (fine for 60 s windows, useless for 1 s), per-task accounting
+(thread groups need `/proc/<pid>/task/*/stat`), and the same block-layer bias as PSI. Use it when
+armed, on ≤ 16 suspects, never for every process on every tick.
 
 ---
 

@@ -140,6 +140,7 @@ The before/after in one screen is the entire pitch. It also happens to be the
 | 20 | Compose + DaemonSet recipes with a `doctor`-asserted visibility test | M | Proves the capability matrix instead of claiming it |
 | 21 | Staggered PID scheduler (1/5 of PIDs per tick, round-robin) | M | Keeps idle CPU under budget |
 | 22 | Coverage accounting: attributed/observed requests + eviction counters | M | A diagnosis needs a denominator |
+| 23 | `delayacct_blkio_ticks` blocked-time cross-check (armed, top 16 suspects) | M | Independent confirmation of request-share blame |
 
 ---
 

@@ -184,7 +184,7 @@ the tool can name*, not how much exists.
 | # | Class | Detectors | Primary sources | Phase | Coverage |
 | --- | --- | --- | --- | --- | --- |
 | 1 | **Resource starvation** | `io.full_stall`, `mem.reclaim_pressure`, `cpu.runqueue_delay`, `cpu.ctx_switch_storm` | PSI, vmstat, schedstat | v0.2-0.3 | **High** |
-| 2 | **Latency amplification** | `io.small_write_storm`, `io.writeback_throttle`, `io.journal_serialization` | cgroup `io.stat`, vmstat, jbd2 | v0.2-0.3 | **High** |
+| 2 | **Latency amplification** | `io.small_write_storm`, `io.writeback_throttle`, `io.journal_serialization` | cgroup `io.stat` + `delayacct` cross-check, vmstat, jbd2 | v0.2-0.3 | **High** |
 | 3 | **Cascade / shared fate** | `cascade.shared_storage`, `cascade.remote_dependency` | findings + edges (hub) | v0.5 | **Medium** (hub only) |
 | 4 | **State-transition failure** | `io.remount_readonly`, `hw.mmc_errors`, `device_lost`, `visibility_lost` | kmsg, mount table, probe health | v0.2 | **Medium** (Linux) |
 | 5 | **Hardware degradation** | `io.device_stall`, `hw.thermal_throttle`, `hw.undervoltage`, `hw.mmc_errors` | diskstats, sysfs, `vcgencmd`, kmsg | v0.2 | **High on Pi**, none elsewhere |
@@ -316,7 +316,7 @@ Stretch: `journal_commit`, `memory_reclaim`, `thermal_throttle`.
 | Weeks | Milestone | Deliverables | Gate |
 | --- | --- | --- | --- |
 | 1-2 | **v0.1 skeleton** | workspace + lints; PSI, diskstats, vmstat parsers; `io.full_stall`; `report`; `doctor`; `selftest`; zero-alloc tick test | Truthful summary on a real Pi; exit 3 with explanation when PSI is absent |
-| 3-4 | **Fixtures** | `record`/`replay`, fixture format, `clean_baseline` + `sd_fsync_storm`; `io.small_write_storm`; blame math | Replay is deterministic; clean baseline emits nothing |
+| 3-4 | **Fixtures** | `record`/`replay`, fixture format, `clean_baseline` + `sd_fsync_storm`; `io.small_write_storm`; blame math + blocked-time cross-check | Replay is deterministic; clean baseline emits nothing |
 | 5-6 | **Pi alpha (v0.2)** | `io.device_stall`, `hw.thermal_throttle`, `hw.undervoltage`, `mem.swap_on_sd`, `io.remount_readonly`; coverage accounting; kmsg reader | 6 fixtures, >= 5 correct culprits, budgets met on Pi Zero 2 W |
 | 7-8 | **Agent + packaging** | daemon loop, staggered scheduling, JSONL sink, redaction tiers, systemd unit, `install.sh`, aarch64/armv7/armv6 builds | `systemd-analyze security` passes; binary < 5 MB; installer is idempotent |
 | 9-10 | **Beta (v0.3)** | `watch` TUI, webhook sink, `explain`, `unknown_friction` residual, fuzz corpus, perf gate, docs | Fuzz clean 24 h; zero findings on baseline; CI <= 5 min |
@@ -387,6 +387,7 @@ the wire format), 0003 (sync loop, no async), 0004 (agent does not link networki
 3. Hub placement (Pi next to broker vs NAS vs VPS) — only matters at v0.4.
 4. Hub auth: shared token vs per-host token vs mTLS.
 5. Whether `trace` ships in v1.x or waits for v2.
+6. Run the `perf_event` spike only if the idle CPU budget is missed; otherwise do not revisit.
 
 None of these changes the crate map, the schema, or the v1.0 promise.
 

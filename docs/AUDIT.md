@@ -244,6 +244,59 @@ Each of these becomes a line in `doctor` or the docs. Honesty is the product.
 
 ---
 
+## I. Second-opinion review (an external outline)
+
+A reviewer proposed: in-memory ring buffer with disk/alerts only on breach; use `/proc`, `/sys`,
+`inotify`, and `perf_event`; human-readable wait-state translation; then ETW/PresentMon for Windows
+and USB topology; then an "action" companion layer; and for agentic development, modular crates
+(core / linux / CLI) and strict error handling.
+
+**Overall:** directionally aligned with about 60% of our Phase 1 — and useful as independent
+validation that the shape is obvious to others. It is an outline, not an architecture. It omits the
+signals and mechanisms that make the diagnosis defensible.
+
+### Adopted
+
+| Suggestion | What we take | How it lands |
+| --- | --- | --- |
+| Per-process "disk wait times" | **`delayacct_blkio_ticks`** (field 42 of `/proc/<pid>/stat`) — cumulative per-task block-I/O wait in clock ticks | New data source. Used as a **blocked-time cross-check on top suspects when armed** (see `ARCHITECTURE.md` §8). Cheap, and it validates or contradicts IOPS-share blame |
+| Core/companion separation | Already our Core / Recipes / Fix / Fleet split | Confirmed; no change |
+| Crate separation (core / linux / CLI) | Already our crate map | Confirmed; but see the correction below about "core = ingestion" |
+| Strict error handling | Already policy | Reinforced: no panics, degrade, re-probe permissions |
+
+### Rejected, with reasons (now written down so nobody re-suggests them)
+
+| Suggestion | Why not |
+| --- | --- |
+| **`inotify`** for process I/O attribution | inotify **does not report the accessing PID** — it says a file changed, not who changed it. It is per-inode/per-directory (watch explosion, `max_user_watches`), not per-mount. Wrong tool. **fanotify** is the correct choice: mount-wide marks plus PID/FID reporting |
+| **`perf_event`** as a primary source | Plausible for context-switch counting (`PERF_COUNT_SW_CONTEXT_SWITCHES`, `inherit=1` aggregates a thread group in one fd), but it costs an fd per tracked process, depends on `perf_event_paranoid`, and CAP_PERFMON. **Spike candidate if the CPU budget is missed**, not a v1.0 dependency |
+| **PresentMon** principles for sleep/network bugs | Category error: PresentMon measures frame/present timing via ETW. It cannot explain NDIS/power transitions. The right providers are `Kernel-Power`, `NDIS`, `Kernel-Network`, `StorPort`, `USB-*` |
+| "Commit to disk when a threshold is breached" | Reintroduces small writes on the device we are diagnosing. Corrected: **no disk writes by default**; optional bounded spool, off by default, prefer tmpfs |
+| "friction-core for data ingestion" | `fp-core` must stay **pure** (no files, no clocks, no OS). Ingestion belongs in `fp-linux`; scheduling in `fp-agent`. That separation is what makes detectors testable without root |
+
+### The biggest omission
+
+**No PSI.** Their plan infers "disk wait" from per-process counters; that cannot produce the metric
+the user actually feels — *how long the whole system was stalled* — nor distinguish "some tasks
+stalled" from "everything stalled at once." PSI `full` is the headline number in this product, and
+it is also the cheapest read in the entire design. Without it there is no lost-time denominator and
+no way to prioritise findings by user impact.
+
+Also absent: cgroup v2 attribution (the cheapest per-unit blame), confidence tiers, coverage
+accounting, clock/skew handling for multi-host, fixture-based testing, and any budget enforcement.
+Those are the difference between a demo and a tool you can trust at 3 a.m.
+
+### Correction this review surfaced
+
+Our own trap list said fsync counts could come from fanotify. **fanotify has no `FAN_FSYNC` event.**
+It reports opens/reads/writes/closes/creates/moves/errors — useful for *file* attribution, but not
+for counting `fsync`. Actual fsync counting requires an eBPF syscall tracepoint, so v1.0 must infer
+fsync storms from write-syscall rate + small mean request size + elevated latency, and label that
+inference `correlated`. Fixed in `ARCHITECTURE.md`.
+
+---
+
+
 ## H. Verdict
 
 **Feasible, if the scope above is enforced.** The plan as originally written was 2-3x too large for
