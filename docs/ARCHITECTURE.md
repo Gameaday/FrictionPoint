@@ -20,7 +20,7 @@ evidence-backed culprit, using < 1% CPU and no disk writes at idle.
 - Per-process and per-systemd-unit I/O request attribution.
 - Block-device latency, queue depth, and request-size analysis (`/proc/diskstats`).
 - Dirty-page / writeback throttling (`/proc/vmstat`, `/proc/sys/vm/*`).
-- Small-write and fsync-storm detection (procfs + optional fanotify/eBPF).
+- Small-write and fsync-storm detection (procfs inference; true fsync counts need eBPF, post-1.0).
 - Pi-specific hardware checks: undervoltage/throttling (`vcgencmd get_throttled`), swap on
   SD, card/eMMC wear indicators, `mmc` errors, read-only remounts.
 - Human-readable report + JSON output + `explain` + `doctor`.
@@ -240,7 +240,7 @@ pub struct Capabilities {
     pub per_cgroup_io: bool,
     pub psi: bool,
     pub per_request_latency: bool,   // eBPF/ETW only
-    pub fsync_events: bool,          // fanotify/eBPF only
+    pub fsync_events: bool,          // eBPF tracepoint only; fanotify cannot see fsync
     pub thermal: bool,
     pub usb_topology: bool,
 }
